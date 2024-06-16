@@ -15,7 +15,7 @@
     </header>
         <main class="container">
             
-            <article>
+            <!-- <article>
                 
                 <label>
                     Enter your secret
@@ -23,7 +23,7 @@
                 </label>
     
                 <button id="encrypt">Encrypt 🔒</button>
-            </article>
+                </article> -->
             
             
             <article>
@@ -43,6 +43,24 @@
                 </fieldset>
                 <button id="encrypt" onclick="window.wasmBindings.register()">Register</button>
             </article>
+            
+            <article>
+                <h3>Share secret</h3>
+                
+                <form role="search">
+                            <input name="search" type="search" id="search-recipient-input" placeholder="Enter recipient" />
+                            <input type="button" id="search-recipient-button" onclick="window.wasmBindings.find_recipient()" value="Search" />
+                </form>
+                
+                <form>
+                            <input type="text" id="secret-input" placeholder="Enter secret" />
+                            <small id="secret-hint"></small>
+                            <input type="button" id="search-recipient-button" onclick="window.wasmBindings.share_secret()" value="Encrypt" />
+                </form>
+                
+                <a id="shared-secret-link"></a>
+                            
+            </article>        
 
         </main>
 </body>

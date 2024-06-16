@@ -1652,6 +1652,7 @@ dependencies = [
  "getrandom",
  "kem",
  "ml-kem",
+ "once_cell",
  "rand",
  "reqwest",
  "wasm-bindgen",
