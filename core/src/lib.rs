@@ -1,14 +1,16 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+use serde::{Deserialize, Serialize};
+use base64::prelude::*;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateAccount {
+    pub username: String,
+    pub public_key: String,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub fn decode_public_key(payload: &str) -> Result<Vec<u8>, base64::DecodeError> {
+    base64::prelude::BASE64_STANDARD.decode(payload)
+}
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub fn encode_public_key(payload: &[u8]) -> String {
+    base64::prelude::BASE64_STANDARD.encode(payload)
 }

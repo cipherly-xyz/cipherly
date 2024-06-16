@@ -15,12 +15,35 @@
     </header>
         <main class="container">
             
-            <label>
-                Enter your secret
-                <input type="text" id="secret-input" value="my secret"/>
-            </label>
+            <article>
+                
+                <label>
+                    Enter your secret
+                    <input type="text" id="secret-input" value="my secret"/>
+                </label>
+    
+                <button id="encrypt">Encrypt 🔒</button>
+            </article>
+            
+            
+            <article>
+                <h3>Register</h3>
+                <fieldset>
+                    <label>
+                        Username
+                        <input type="text" id="username-input" value="alice"/>
+                        <small id="username-hint"></small>
+                            
+                    </label>
+                    <label>
+                        Password
+                        <input type="password" id="password-input"/>
+                        <small id="password-hint"></small>
+                    </label>
+                </fieldset>
+                <button id="encrypt" onclick="window.wasmBindings.register()">Register</button>
+            </article>
 
-            <button id="encrypt">Encrypt 🔒</button>
         </main>
 </body>
 </html>

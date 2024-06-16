@@ -5,4 +5,14 @@ edition = "2021"
 
 [dependencies]
 axum = "0.7.5"
+axum-macros = "*"
+
 tokio = { version = "1.36", features = ["rt-multi-thread"] }
+sqlx = { version = "0.7", features = [ "runtime-tokio", "sqlite" ] }
+anyhow = "*"
+"serde" = "*"
+base64 = "*"
+log = "0.4.21"
+simple_logger = "5.0.0"
+
+core = { path = "../core" }
