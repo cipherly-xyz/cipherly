@@ -1,4 +1,3 @@
-
 use std::io::Read;
 
 use ::kem::Decapsulate;
@@ -8,8 +7,7 @@ use ml_kem::{KemCore, B32};
 
 use aes_gcm_siv::{
     aead::{Aead, KeyInit},
-    Aes256GcmSiv,
-    Nonce,
+    Aes256GcmSiv, Nonce,
 };
 
 // re-export for convenience
@@ -36,16 +34,15 @@ pub fn generate_keys<K: KemCore>(input: &str) -> (K::DecapsulationKey, K::Encaps
 }
 
 pub fn ek_from_bytes<K: KemCore>(input: &[u8]) -> K::EncapsulationKey {
-    
     let ek = Encoded::<K::EncapsulationKey>::from_slice(&input);
     K::EncapsulationKey::from_bytes(ek)
 }
 
 pub fn ek_shared_secret<K: KemCore>(ek: &K::EncapsulationKey) -> (Vec<u8>, Vec<u8>) {
     let mut rng = rand::thread_rng();
-    
+
     let (c, k) = ek.encapsulate(&mut rng).unwrap();
-    
+
     (c.to_vec(), k.to_vec())
 }
 

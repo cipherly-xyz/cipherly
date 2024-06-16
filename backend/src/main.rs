@@ -33,7 +33,6 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/accounts", post(create_account))
         .route("/api/accounts/:username", get(get_account))
         .route("/api/secrets", post(create_secret))
-        
         .with_state(state);
 
     // run our app with hyper, listening globally on port 3000
@@ -99,7 +98,6 @@ struct Account {
 
 impl From<Account> for core::Account {
     fn from(account: Account) -> Self {
-        
         let pk = core::encode_public_key(&account.public_key);
         Self {
             id: account.id,
@@ -119,28 +117,27 @@ async fn get_account(
     let account: Result<Account, sqlx::Error> = sqlx::query_as(
         r#"
             SELECT * FROM accounts WHERE username = ?;
-            "#
+            "#,
     )
     .bind(username.0)
     .fetch_one(pool)
     .await;
-    
+
     if let Ok(account) = account {
         log::info!("Got account: {:?}", account);
-        
-        let resp = core::Account::from(account);
-        return (StatusCode::OK, axum::Json(resp))
-    }
-    
-    todo!()
 
+        let resp = core::Account::from(account);
+        return (StatusCode::OK, axum::Json(resp));
+    }
+
+    todo!()
 }
 
 #[debug_handler]
 async fn create_secret(
     state: State<AppState>,
     payload: axum::Json<core::CreateSecret>,
-) -> (StatusCode, axum::Json<Option<core::SecretCreated>>)  {
+) -> (StatusCode, axum::Json<Option<core::SecretCreated>>) {
     let pool = &state.db_pool;
 
     let id = sqlx::query(
@@ -159,7 +156,12 @@ async fn create_secret(
     .await;
 
     match id {
-        Ok(id) => (StatusCode::CREATED, axum::Json(Some(core::SecretCreated{id:id.last_insert_rowid().to_string(),}))),
+        Ok(id) => (
+            StatusCode::CREATED,
+            axum::Json(Some(core::SecretCreated {
+                id: id.last_insert_rowid().to_string(),
+            })),
+        ),
         Err(e) => {
             log::error!("Failed to insert secret: {:?}", e);
 

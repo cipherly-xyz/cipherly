@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use base64::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateAccount {
