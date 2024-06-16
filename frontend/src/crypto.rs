@@ -1,5 +1,3 @@
-use std::io::Read;
-
 use ::kem::Decapsulate;
 use ::kem::Encapsulate;
 use ml_kem::*;
@@ -44,6 +42,25 @@ pub fn ek_shared_secret<K: KemCore>(ek: &K::EncapsulationKey) -> (Vec<u8>, Vec<u
     let (c, k) = ek.encapsulate(&mut rng).unwrap();
 
     (c.to_vec(), k.to_vec())
+}
+
+pub fn decrypt<K: KemCore>(
+    password: &str,
+    ciphertext: &[u8],
+    encapsulated_sym_key: &[u8],
+) -> anyhow::Result<String> {
+    let encapsulated_secret = Ciphertext::<K>::from_slice(&encapsulated_sym_key);
+
+    let (dk, _) = generate_keys::<K>(password);
+
+    let sym_key = dk
+        .decapsulate(encapsulated_secret)
+        .map_err(|e| anyhow::anyhow!("Failed to decapsulate symetric key: {:?}", e))?;
+
+    let plaintext = aes_dec(ciphertext, &sym_key)
+        .map_err(|e| anyhow::anyhow!("Failed to decrypt ciphertext: {:?}", e))?;
+
+    String::from_utf8(plaintext).map_err(|e| anyhow::anyhow!(e))
 }
 
 #[derive(Debug)]
@@ -109,6 +126,21 @@ mod tests {
         println!("{:?}", k_send);
         println!("{:?}", k_recv);
         assert_eq!(k_send, k_recv);
+    }
+
+    #[test]
+    fn test_decrypt() {
+        let mut rng = rand::thread_rng();
+
+        let password = "qqq";
+
+        let (_, ek) = generate_keys::<MlKem1024>(password);
+        let (ct, k_send) = ek.encapsulate(&mut rng).unwrap();
+        let aes_cipher = aes_enc(b"plaintext", &k_send).unwrap();
+
+        let k_recv = decrypt::<MlKem1024>(password, &aes_cipher, &ct).unwrap();
+
+        assert_eq!(k_recv, "plaintext")
     }
 
     #[test]

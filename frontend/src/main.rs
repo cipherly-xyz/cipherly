@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 
+use kem::Decapsulate;
 use ml_kem::EncodedSizeUser;
 use ml_kem::MlKem1024;
 use reqwest::StatusCode;
@@ -259,6 +260,45 @@ pub async fn share_secret() {
             log("failed to create secret");
         }
     }
+}
+
+#[wasm_bindgen]
+pub async fn decrypt_secret() {
+    let secret_id_input = get_element_by_id::<HtmlInputElement>("decrypt-secret-id-input").unwrap();
+    let secret_id = validate_input(None, &secret_id_input, "Secret ID cannot be empty");
+
+    if secret_id.is_none() {
+        return;
+    }
+    let secret_id = secret_id.unwrap();
+
+    let client = reqwest::Client::new();
+    let secret = client
+        .get(format!("http://localhost:8080/api/secrets/{}", secret_id))
+        .send()
+        .await
+        .unwrap()
+        .json::<core::GetSecret>()
+        .await
+        .unwrap();
+
+    log(&format!("got secret: {:?}", secret));
+
+    let password_input = get_element_by_id("decode-password-input").unwrap();
+
+    let password = validate_input(None, &password_input, "Password cannot be empty");
+    let password = password.unwrap();
+
+    let ciphertext = core::decode_public_key(&secret.ciphertext).unwrap();
+    let encapsulated_sym_key = core::decode_public_key(&secret.enc_key).unwrap();
+
+    let plaintext =
+        crypto::decrypt::<ml_kem::MlKem1024>(&password, &ciphertext, &encapsulated_sym_key)
+            .unwrap();
+    drop(password);
+
+    let plaintext_element = get_element_by_id::<HtmlElement>("decrypted-secret").unwrap();
+    plaintext_element.set_inner_text(&plaintext);
 }
 
 fn main() -> anyhow::Result<()> {

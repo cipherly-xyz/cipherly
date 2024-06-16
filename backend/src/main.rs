@@ -33,6 +33,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/accounts", post(create_account))
         .route("/api/accounts/:username", get(get_account))
         .route("/api/secrets", post(create_secret))
+        .route("/api/secrets/:secret_id", get(get_secret))
         .with_state(state);
 
     // run our app with hyper, listening globally on port 3000
@@ -150,8 +151,8 @@ async fn create_secret(
             RETURNING id;
             "#,
     )
-    .bind(&payload.ciphertext)
-    .bind(&payload.enc_key)
+    .bind(&payload.ciphertext) // TODO: ciphertext and enc_key should be base64 encoded or not, not mixed
+    .bind(&core::decode_public_key(&payload.enc_key).unwrap())
     .execute(pool)
     .await;
 
@@ -168,4 +169,49 @@ async fn create_secret(
             (StatusCode::INTERNAL_SERVER_ERROR, axum::Json(None))
         }
     }
+}
+
+#[derive(sqlx::FromRow, Debug)]
+struct Secret {
+    id: i64,
+    ciphertext: String,
+    enc_key: Vec<u8>,
+}
+
+impl From<Secret> for core::GetSecret {
+    fn from(secret: Secret) -> Self {
+        Self {
+            id: secret.id,
+            ciphertext: secret.ciphertext,
+            enc_key: core::encode_public_key(&secret.enc_key),
+        }
+    }
+}
+
+#[debug_handler]
+async fn get_secret(
+    state: State<AppState>,
+    secret_id: axum::extract::Path<String>,
+) -> (StatusCode, axum::Json<core::GetSecret>) {
+    let pool = &state.db_pool;
+
+    let secret: Result<Secret, sqlx::Error> = sqlx::query_as(
+        r#"
+            SELECT * FROM secrets WHERE id = ?;
+            "#,
+    )
+    .bind(secret_id.0)
+    .fetch_one(pool)
+    .await;
+
+    if let Ok(secret) = secret {
+        log::info!("Got secret: {:?}", secret);
+
+        let resp = core::GetSecret::from(secret);
+        return (StatusCode::OK, axum::Json(resp));
+    }
+
+    log::debug!("Failed to get secret: {secret:?}");
+
+    todo!()
 }

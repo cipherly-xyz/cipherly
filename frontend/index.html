@@ -60,7 +60,23 @@
                 
                 <a id="shared-secret-link"></a>
                             
-            </article>        
+            </article>  
+      
+            <article>
+                <h3>Decrypt secret</h3>
+                
+                <form role="search">
+                            <input name="search" type="search" id="decrypt-secret-id-input" placeholder="Enter secret id" />
+                            <input type="password" id="decode-password-input" placeholder="Enter password" />
+                            <input type="button" id="decrypt-secret-button" onclick="window.wasmBindings.decrypt_secret()" value="Decrypt" />
+                </form>
+                
+                <div id="decrypted-secret"></div>
+                
+                
+                <a id="shared-secret-link"></a>
+                            
+            </article>      
 
         </main>
 </body>

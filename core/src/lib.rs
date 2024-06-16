@@ -25,6 +25,13 @@ pub struct SecretCreated {
     pub id: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetSecret {
+    pub id: i64,
+    pub ciphertext: String,
+    pub enc_key: String,
+}
+
 pub fn decode_public_key(payload: &str) -> Result<Vec<u8>, base64::DecodeError> {
     base64::prelude::BASE64_STANDARD.decode(payload)
 }
