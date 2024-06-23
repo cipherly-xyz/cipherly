@@ -150,7 +150,7 @@ async fn create_secret(
             "#,
     )
     .bind(&payload.ciphertext) // TODO: ciphertext and enc_key should be base64 encoded or not, not mixed
-    .bind(&core::decode_public_key(&payload.enc_key).unwrap())
+    .bind(&core::decode_public_key(&payload.encapsulated_sym_key).unwrap())
     .execute(pool)
     .await;
 
@@ -181,7 +181,7 @@ impl From<Secret> for core::GetSecret {
         Self {
             id: secret.id,
             ciphertext: secret.ciphertext,
-            enc_key: core::encode_public_key(&secret.enc_key),
+            encapsulated_sym_key: core::encode_public_key(&secret.enc_key),
         }
     }
 }

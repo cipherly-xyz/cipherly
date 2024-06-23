@@ -233,7 +233,7 @@ pub async fn share_secret() {
 
     let secret_body = core::CreateSecret {
         ciphertext: core::encode_public_key(&ciphertext),
-        enc_key: core::encode_public_key(&encapsulated_sym_key),
+        encapsulated_sym_key: core::encode_public_key(&encapsulated_sym_key),
     };
 
     let client = reqwest::Client::new();
@@ -289,7 +289,7 @@ pub async fn decrypt_secret() {
     let password = password.unwrap();
 
     let ciphertext = core::decode_public_key(&secret.ciphertext).unwrap();
-    let encapsulated_sym_key = core::decode_public_key(&secret.enc_key).unwrap();
+    let encapsulated_sym_key = core::decode_public_key(&secret.encapsulated_sym_key).unwrap();
 
     let plaintext =
         crypto::decrypt::<ml_kem::MlKem1024>(&password, &ciphertext, &encapsulated_sym_key)

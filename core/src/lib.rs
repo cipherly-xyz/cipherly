@@ -17,7 +17,7 @@ pub struct Account {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateSecret {
     pub ciphertext: String,
-    pub enc_key: String,
+    pub encapsulated_sym_key: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,7 +29,7 @@ pub struct SecretCreated {
 pub struct GetSecret {
     pub id: i64,
     pub ciphertext: String,
-    pub enc_key: String,
+    pub encapsulated_sym_key: String,
 }
 
 pub fn decode_public_key(payload: &str) -> Result<Vec<u8>, base64::DecodeError> {
