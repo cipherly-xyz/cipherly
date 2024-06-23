@@ -8,8 +8,6 @@ use axum::{
 use axum_macros::debug_handler;
 use sqlx::SqlitePool;
 
-use log;
-
 #[derive(Clone)]
 struct AppState {
     db_pool: SqlitePool,

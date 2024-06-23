@@ -1,6 +1,5 @@
 use std::sync::Mutex;
 
-use kem::Decapsulate;
 use ml_kem::EncodedSizeUser;
 use ml_kem::MlKem1024;
 use reqwest::StatusCode;

@@ -32,7 +32,7 @@ pub fn generate_keys<K: KemCore>(input: &str) -> (K::DecapsulationKey, K::Encaps
 }
 
 pub fn ek_from_bytes<K: KemCore>(input: &[u8]) -> K::EncapsulationKey {
-    let ek = Encoded::<K::EncapsulationKey>::from_slice(&input);
+    let ek = Encoded::<K::EncapsulationKey>::from_slice(input);
     K::EncapsulationKey::from_bytes(ek)
 }
 
@@ -49,7 +49,7 @@ pub fn decrypt<K: KemCore>(
     ciphertext: &[u8],
     encapsulated_sym_key: &[u8],
 ) -> anyhow::Result<String> {
-    let encapsulated_secret = Ciphertext::<K>::from_slice(&encapsulated_sym_key);
+    let encapsulated_secret = Ciphertext::<K>::from_slice(encapsulated_sym_key);
 
     let (dk, _) = generate_keys::<K>(password);
 
@@ -69,23 +69,23 @@ pub enum Errors {
 }
 
 pub fn aes_enc(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>, Errors> {
-    let cipher = Aes256GcmSiv::new_from_slice(&key).map_err(|_| Errors::AesKeyInvalidLength)?;
+    let cipher = Aes256GcmSiv::new_from_slice(key).map_err(|_| Errors::AesKeyInvalidLength)?;
     let nonce = Nonce::from_slice(b"unique nonce"); // 96-bits; unique per message
     let ciphertext = cipher
         .encrypt(nonce, plaintext.as_ref())
         .expect("failed to encrypt");
 
-    return Ok(ciphertext);
+    Ok(ciphertext)
 }
 
 pub fn aes_dec(ciphertext: &[u8], key: &[u8]) -> Result<Vec<u8>, Errors> {
-    let cipher = Aes256GcmSiv::new_from_slice(&key).map_err(|_| Errors::AesKeyInvalidLength)?;
+    let cipher = Aes256GcmSiv::new_from_slice(key).map_err(|_| Errors::AesKeyInvalidLength)?;
     let nonce = Nonce::from_slice(b"unique nonce"); // 96-bits; unique per message
     let ciphertext = cipher
         .decrypt(nonce, ciphertext.as_ref())
         .expect("failed to encrypt");
 
-    return Ok(ciphertext);
+    Ok(ciphertext)
 }
 
 #[cfg(test)]
@@ -100,7 +100,7 @@ mod tests {
         let password = "qqq";
         let plaintext = b"some plaintext message";
 
-        let (dk, ek) = generate_keys::<MlKem1024>(password);
+        let (_dk, ek) = generate_keys::<MlKem1024>(password);
 
         let (_, k_send) = ek.encapsulate(&mut rng).unwrap();
 
