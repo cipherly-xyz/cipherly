@@ -44,6 +44,23 @@ pub fn ek_shared_secret<K: KemCore>(ek: &K::EncapsulationKey) -> (Vec<u8>, Vec<u
     (c.to_vec(), k.to_vec())
 }
 
+pub struct EncryptionResult {
+    pub ciphertext: Vec<u8>,
+    pub encapsulated_sym_key: Vec<u8>,
+}
+pub fn encrypt(encapsulation_key: &[u8], plaintext: &str) -> anyhow::Result<EncryptionResult> {
+    let ek = ek_from_bytes::<MlKem1024>(encapsulation_key);
+
+    let (encapsulated_sym_key, sym_key) = ek_shared_secret::<MlKem1024>(&ek);
+
+    let ciphertext = aes_enc(plaintext.as_bytes(), &sym_key)?;
+
+    Ok(EncryptionResult {
+        ciphertext,
+        encapsulated_sym_key,
+    })
+}
+
 pub fn decrypt<K: KemCore>(
     password: &str,
     ciphertext: &[u8],
@@ -63,13 +80,8 @@ pub fn decrypt<K: KemCore>(
     String::from_utf8(plaintext).map_err(|e| anyhow::anyhow!(e))
 }
 
-#[derive(Debug)]
-pub enum Errors {
-    AesKeyInvalidLength,
-}
-
-pub fn aes_enc(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>, Errors> {
-    let cipher = Aes256GcmSiv::new_from_slice(key).map_err(|_| Errors::AesKeyInvalidLength)?;
+pub fn aes_enc(plaintext: &[u8], key: &[u8]) -> anyhow::Result<Vec<u8>> {
+    let cipher = Aes256GcmSiv::new_from_slice(key)?;
     let nonce = Nonce::from_slice(b"unique nonce"); // 96-bits; unique per message
     let ciphertext = cipher
         .encrypt(nonce, plaintext.as_ref())
@@ -78,8 +90,8 @@ pub fn aes_enc(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>, Errors> {
     Ok(ciphertext)
 }
 
-pub fn aes_dec(ciphertext: &[u8], key: &[u8]) -> Result<Vec<u8>, Errors> {
-    let cipher = Aes256GcmSiv::new_from_slice(key).map_err(|_| Errors::AesKeyInvalidLength)?;
+pub fn aes_dec(ciphertext: &[u8], key: &[u8]) -> anyhow::Result<Vec<u8>> {
+    let cipher = Aes256GcmSiv::new_from_slice(key)?;
     let nonce = Nonce::from_slice(b"unique nonce"); // 96-bits; unique per message
     let ciphertext = cipher
         .decrypt(nonce, ciphertext.as_ref())
@@ -92,6 +104,23 @@ pub fn aes_dec(ciphertext: &[u8], key: &[u8]) -> Result<Vec<u8>, Errors> {
 mod tests {
     use super::*;
     use aes_gcm_siv::aead::OsRng;
+
+    #[test]
+    fn encrypt_decrypt_test() {
+        let password = "somepassword";
+        let plaintext = "plaintext";
+
+        let (_, encapsulaton_key) = generate_keys::<MlKem1024>(password);
+
+        let EncryptionResult {
+            ciphertext,
+            encapsulated_sym_key,
+        } = encrypt(&encapsulaton_key.as_bytes(), plaintext).unwrap();
+
+        let decrypted = decrypt::<MlKem1024>(password, &ciphertext, &encapsulated_sym_key).unwrap();
+
+        assert_eq!(decrypted, plaintext);
+    }
 
     #[test]
     fn aes_plus_kyber() {

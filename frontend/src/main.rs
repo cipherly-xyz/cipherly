@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
+use crypto::EncryptionResult;
 use ml_kem::EncodedSizeUser;
-use ml_kem::MlKem1024;
 use reqwest::StatusCode;
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlElement, HtmlInputElement};
@@ -222,14 +222,12 @@ pub async fn share_secret() {
 
     let ek_bytes = core::decode_public_key(&acc.public_key).unwrap();
 
-    let ek = crypto::ek_from_bytes::<MlKem1024>(&ek_bytes);
-
-    let (encapsulated_sym_key, sym_key) = crypto::ek_shared_secret::<MlKem1024>(&ek);
-
-    let ciphertext = crypto::aes_enc(secret.as_bytes(), &sym_key).unwrap();
+    let EncryptionResult {
+        ciphertext,
+        encapsulated_sym_key,
+    } = crypto::encrypt(&ek_bytes, &secret).unwrap();
 
     drop(secret);
-    drop(sym_key);
 
     let secret_body = core::CreateSecret {
         ciphertext: core::encode_public_key(&ciphertext),
