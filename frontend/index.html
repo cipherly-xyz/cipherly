@@ -8,13 +8,23 @@
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
   />
+  
+  <style>
+    .error {
+        border: 1px solid var(--pico-form-element-invalid-border-color);
+        border-radius: 5px;
+        padding: 1em;
+        margin: 1em;
+    }
+  </style>
 </head>
 <body>
     </header>
         <h1>Secret share</h1>
     </header>
+    
         <main class="container">
-            
+           
             <!-- <article>
                 
                 <label>
@@ -42,15 +52,19 @@
                     </label>
                 </fieldset>
                 <button id="encrypt" onclick="window.wasmBindings.register()">Register</button>
-            </article>
+                <div id="register-error"></div >
+            </article >
             
             <article>
                 <h3>Share secret</h3>
                 
                 <form role="search">
                             <input name="search" type="search" id="search-recipient-input" placeholder="Enter recipient" />
+                            
                             <input type="button" id="search-recipient-button" onclick="window.wasmBindings.find_recipient()" value="Search" />
                 </form>
+                <div id="find-recipient-error"></div >
+                
                 
                 <form>
                             <input type="text" id="secret-input" placeholder="Enter secret" />
@@ -73,8 +87,8 @@
                 
                 <div id="decrypted-secret"></div>
                 
-                
-                <a id="shared-secret-link"></a>
+                <div id="decrypt-secret-error"></div >
+
                             
             </article>      
 

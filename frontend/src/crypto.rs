@@ -85,7 +85,7 @@ pub fn aes_enc(plaintext: &[u8], key: &[u8]) -> anyhow::Result<Vec<u8>> {
     let nonce = Nonce::from_slice(b"unique nonce"); // 96-bits; unique per message
     let ciphertext = cipher
         .encrypt(nonce, plaintext.as_ref())
-        .expect("failed to encrypt");
+        .map_err(|e| anyhow::anyhow!("Failed to aes encrypt: {:?}", e))?;
 
     Ok(ciphertext)
 }
@@ -95,7 +95,7 @@ pub fn aes_dec(ciphertext: &[u8], key: &[u8]) -> anyhow::Result<Vec<u8>> {
     let nonce = Nonce::from_slice(b"unique nonce"); // 96-bits; unique per message
     let ciphertext = cipher
         .decrypt(nonce, ciphertext.as_ref())
-        .expect("failed to encrypt");
+        .map_err(|e| anyhow::anyhow!("Failed to aes decrypt: {:?}", e))?;
 
     Ok(ciphertext)
 }
