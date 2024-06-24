@@ -76,7 +76,7 @@ async fn register_internal() -> Result<RegistrationViewModel, FrontendError> {
 
     let acc = core::CreateAccount {
         username: username.to_string(),
-        public_key: core::encode_public_key(&ek.as_bytes()).to_string(),
+        public_key: core::encode_bas64(&ek.as_bytes()).to_string(),
     };
 
     let client = reqwest::Client::new();
@@ -216,7 +216,7 @@ async fn share_secret_internal() -> Result<ShareSecretViewModel, FrontendError> 
     let secret_input: HtmlInputElement = get_element_by_id("secret-input")?;
     let secret = validate_input(Some(&secret_hint), &secret_input, "Secret cannot be empty")?;
 
-    let ek_bytes = core::decode_public_key(&acc.public_key)
+    let ek_bytes = core::decode_base64(&acc.public_key)
         .map_err(|e| FrontendError::Unknown(format!("Failed to decode public key: {e:?}")))?;
 
     let EncryptionResult {
@@ -228,8 +228,8 @@ async fn share_secret_internal() -> Result<ShareSecretViewModel, FrontendError> 
     drop(secret);
 
     let secret_body = core::CreateSecret {
-        ciphertext: core::encode_public_key(&ciphertext),
-        encapsulated_sym_key: core::encode_public_key(&encapsulated_sym_key),
+        ciphertext: core::encode_bas64(&ciphertext),
+        encapsulated_sym_key: core::encode_bas64(&encapsulated_sym_key),
     };
 
     let client = reqwest::Client::new();
@@ -310,10 +310,10 @@ async fn decrypt_secret_internal() -> Result<DecryptedSecretViewModel, FrontendE
 
             let password = validate_input(None, &password_input, "Password cannot be empty")?;
 
-            let ciphertext = core::decode_public_key(&secret.ciphertext).map_err(|e| {
+            let ciphertext = core::decode_base64(&secret.ciphertext).map_err(|e| {
                 FrontendError::Unknown(format!("Failed to decode ciphertext: {e:?}"))
             })?;
-            let encapsulated_sym_key = core::decode_public_key(&secret.encapsulated_sym_key)
+            let encapsulated_sym_key = core::decode_base64(&secret.encapsulated_sym_key)
                 .map_err(|e| {
                     FrontendError::Unknown(format!(
                         "Failed to decode encapsulated symetric key: {e:?}"

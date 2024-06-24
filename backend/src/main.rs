@@ -48,7 +48,7 @@ async fn create_account(
 ) -> impl IntoResponse {
     let pool = &state.db_pool;
 
-    let public_key = match core::decode_public_key(&payload.public_key) {
+    let public_key = match core::decode_base64(&payload.public_key) {
         Ok(key) => key,
         Err(_) => {
             log::error!("Failed to base64 decode public key");
@@ -97,7 +97,7 @@ struct Account {
 
 impl From<Account> for core::Account {
     fn from(account: Account) -> Self {
-        let pk = core::encode_public_key(&account.public_key);
+        let pk = core::encode_bas64(&account.public_key);
         Self {
             id: account.id,
             username: account.username,
@@ -155,7 +155,7 @@ async fn create_secret(
             "#,
     )
     .bind(&payload.ciphertext) // TODO: ciphertext and enc_key should be base64 encoded or not, not mixed
-    .bind(&core::decode_public_key(&payload.encapsulated_sym_key).unwrap())
+    .bind(&core::decode_base64(&payload.encapsulated_sym_key).unwrap())
     .execute(pool)
     .await;
 
@@ -186,7 +186,7 @@ impl From<Secret> for core::GetSecret {
         Self {
             id: secret.id,
             ciphertext: secret.ciphertext,
-            encapsulated_sym_key: core::encode_public_key(&secret.enc_key),
+            encapsulated_sym_key: core::encode_bas64(&secret.enc_key),
         }
     }
 }
