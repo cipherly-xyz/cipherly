@@ -147,21 +147,31 @@ async fn find_recipient_internal() -> Result<FindRecipientViewModel, FrontendErr
     let username = validate_input(None, &recipient_input, "Recipient cannot be empty")?;
 
     let client = reqwest::Client::new();
-    let acc = client
+    let resp = client
         .get(format!("http://localhost:8080/api/accounts/{}", username))
         .send()
         .await
-        .map_err(|err| FrontendError::GeneralBackendError(err.to_string()))?
-        .json::<core::Account>()
-        .await
         .map_err(|err| FrontendError::GeneralBackendError(err.to_string()))?;
 
-    log(&format!("{:?}", acc));
+    match resp.status() {
+        reqwest::StatusCode::OK => {
+            let acc = resp
+                .json::<core::Account>()
+                .await
+                .map_err(|err| FrontendError::GeneralBackendError(err.to_string()))?;
 
-    let mut s = STATE.lock().unwrap();
+            let mut s = STATE.lock().unwrap();
 
-    s.recipient = Some(acc);
-    Ok(FindRecipientViewModel { username })
+            s.recipient = Some(acc);
+            Ok(FindRecipientViewModel { username })
+        }
+        reqwest::StatusCode::NOT_FOUND => {
+            Err(FrontendError::Unknown("Recipient not found".to_owned()))
+        }
+        _ => Err(FrontendError::Unknown(
+            "Unknown error from server".to_owned(),
+        )),
+    }
 }
 
 #[derive(Debug)]
@@ -281,34 +291,49 @@ async fn decrypt_secret_internal() -> Result<DecryptedSecretViewModel, FrontendE
     let secret_id = validate_input(None, &secret_id_input, "Secret ID cannot be empty")?;
 
     let client = reqwest::Client::new();
-    let secret = client
+    let resp = client
         .get(format!("http://localhost:8080/api/secrets/{}", secret_id))
         .send()
         .await
-        .map_err(|err| FrontendError::GeneralBackendError(err.to_string()))?
-        .json::<core::GetSecret>()
-        .await
         .map_err(|err| FrontendError::GeneralBackendError(err.to_string()))?;
 
-    log(&format!("got secret: {:?}", secret));
+    match resp.status() {
+        StatusCode::OK => {
+            let secret: core::GetSecret = resp
+                .json()
+                .await
+                .map_err(|e| FrontendError::GeneralBackendError(e.to_string()))?;
 
-    let password_input = get_element_by_id("decode-password-input")?;
+            log(&format!("got secret: {:?}", secret));
 
-    let password = validate_input(None, &password_input, "Password cannot be empty")?;
+            let password_input = get_element_by_id("decode-password-input")?;
 
-    let ciphertext = core::decode_public_key(&secret.ciphertext)
-        .map_err(|e| FrontendError::Unknown(format!("Failed to decode ciphertext: {e:?}")))?;
-    let encapsulated_sym_key =
-        core::decode_public_key(&secret.encapsulated_sym_key).map_err(|e| {
-            FrontendError::Unknown(format!("Failed to decode encapsulated symetric key: {e:?}"))
-        })?;
+            let password = validate_input(None, &password_input, "Password cannot be empty")?;
 
-    let plaintext =
-        crypto::decrypt::<ml_kem::MlKem1024>(&password, &ciphertext, &encapsulated_sym_key)
-            .map_err(|e| FrontendError::Unknown(format!("Failed to decrypt secret: {e:?}")))?;
-    drop(password);
+            let ciphertext = core::decode_public_key(&secret.ciphertext).map_err(|e| {
+                FrontendError::Unknown(format!("Failed to decode ciphertext: {e:?}"))
+            })?;
+            let encapsulated_sym_key = core::decode_public_key(&secret.encapsulated_sym_key)
+                .map_err(|e| {
+                    FrontendError::Unknown(format!(
+                        "Failed to decode encapsulated symetric key: {e:?}"
+                    ))
+                })?;
 
-    Ok(DecryptedSecretViewModel { plaintext })
+            let plaintext =
+                crypto::decrypt::<ml_kem::MlKem1024>(&password, &ciphertext, &encapsulated_sym_key)
+                    .map_err(|e| {
+                        FrontendError::Unknown(format!("Failed to decrypt secret: {e:?}"))
+                    })?;
+            drop(password);
+
+            Ok(DecryptedSecretViewModel { plaintext })
+        }
+        StatusCode::NOT_FOUND => Err(FrontendError::Unknown("Secret not found".to_owned())),
+        _ => Err(FrontendError::Unknown(
+            "Unknown error from server".to_owned(),
+        )),
+    }
 }
 
 fn main() -> anyhow::Result<()> {

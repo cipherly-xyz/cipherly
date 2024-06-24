@@ -16,7 +16,7 @@ struct AppState {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     simple_logger::SimpleLogger::new()
-        .with_level(log::LevelFilter::Info)
+        .with_level(log::LevelFilter::Debug)
         .init()?;
 
     let db_url = std::env::var("DATABASE_URL")?;
@@ -110,7 +110,7 @@ impl From<Account> for core::Account {
 async fn get_account(
     state: State<AppState>,
     username: axum::extract::Path<String>,
-) -> (StatusCode, axum::Json<core::Account>) {
+) -> (StatusCode, axum::Json<Option<core::Account>>) {
     let pool = &state.db_pool;
 
     let account: Result<Account, sqlx::Error> = sqlx::query_as(
@@ -122,14 +122,19 @@ async fn get_account(
     .fetch_one(pool)
     .await;
 
-    if let Ok(account) = account {
-        log::info!("Got account: {:?}", account);
+    match account {
+        Ok(account) => {
+            log::debug!("Got account: {:?}", account);
 
-        let resp = core::Account::from(account);
-        return (StatusCode::OK, axum::Json(resp));
+            let resp = core::Account::from(account);
+            (StatusCode::OK, axum::Json(Some(resp)))
+        }
+        Err(sqlx::Error::RowNotFound) => (StatusCode::NOT_FOUND, axum::Json(None)),
+        Err(e) => {
+            log::error!("Failed to get account: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, axum::Json(None))
+        }
     }
-
-    todo!()
 }
 
 #[debug_handler]
@@ -190,7 +195,7 @@ impl From<Secret> for core::GetSecret {
 async fn get_secret(
     state: State<AppState>,
     secret_id: axum::extract::Path<String>,
-) -> (StatusCode, axum::Json<core::GetSecret>) {
+) -> (StatusCode, axum::Json<Option<core::GetSecret>>) {
     let pool = &state.db_pool;
 
     let secret: Result<Secret, sqlx::Error> = sqlx::query_as(
@@ -202,14 +207,17 @@ async fn get_secret(
     .fetch_one(pool)
     .await;
 
-    if let Ok(secret) = secret {
-        log::info!("Got secret: {:?}", secret);
+    match secret {
+        Ok(secret) => {
+            log::debug!("Got secret: {:?}", secret);
 
-        let resp = core::GetSecret::from(secret);
-        return (StatusCode::OK, axum::Json(resp));
+            let resp = core::GetSecret::from(secret);
+            (StatusCode::OK, axum::Json(Some(resp)))
+        }
+        Err(sqlx::Error::RowNotFound) => (StatusCode::NOT_FOUND, axum::Json(None)),
+        Err(e) => {
+            log::error!("Failed to get secret: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, axum::Json(None))
+        }
     }
-
-    log::debug!("Failed to get secret: {secret:?}");
-
-    todo!()
 }
