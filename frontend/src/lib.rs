@@ -78,15 +78,25 @@ pub fn display_form_error(
     Ok(())
 }
 
-pub fn display_result(
+pub fn display_result<T>(
     target_element: &str,
-    res: Result<String, FrontendError>,
-) -> Result<(), FrontendError> {
+    res: Result<T, FrontendError>,
+) -> Result<(), FrontendError>
+where
+    T: maud::Render,
+{
     let target = get_element_by_id::<HtmlElement>(target_element)?;
 
     match res {
-        Ok(msg) => {
-            target.set_inner_html(&msg);
+        Ok(content) => {
+            let html = maud::html! {
+                div .success {
+                   (content)
+                }
+            }
+            .into_string();
+
+            target.set_inner_html(&html);
         }
         Err(FrontendError::InvalidInput {
             input_element_id,
@@ -107,7 +117,14 @@ pub fn display_result(
             | FrontendError::DomError(err)
             | FrontendError::GeneralBackendError(err),
         ) => {
-            target.set_inner_html(&format!("<div class=\"error\">{}</p>", err));
+            let html = maud::html! {
+                div .error {
+                   p { (err) }
+                }
+            }
+            .into_string();
+
+            target.set_inner_html(&html);
         }
     }
 

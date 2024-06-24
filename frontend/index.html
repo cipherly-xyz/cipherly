@@ -10,11 +10,18 @@
   />
   
   <style>
-    .error {
-        border: 1px solid var(--pico-form-element-invalid-border-color);
-        border-radius: 5px;
+    .result > div {
         padding: 1em;
         margin: 1em;
+        border-radius: 5px;
+        border-width: 1px;
+        border-style: solid;
+    }
+    .result > .error {
+        border-color: var(--pico-form-element-invalid-border-color);
+    }
+    .result > .success {
+        border-color: var(--pico-form-element-valid-border-color);
     }
   </style>
 </head>
@@ -52,8 +59,9 @@
                     </label>
                 </fieldset>
                 <button id="encrypt" onclick="window.wasmBindings.register()">Register</button>
-                <div id="register-error"></div >
-            </article >
+                <div id="register-result" class="result">
+                </div>
+            </article>
             
             <article>
                 <h3>Share secret</h3>
@@ -63,7 +71,7 @@
                             
                             <input type="button" id="search-recipient-button" onclick="window.wasmBindings.find_recipient()" value="Search" />
                 </form>
-                <div id="find-recipient-error"></div >
+                <div id="find-recipient-result" class="result"></div >
                 
                 
                 <form>
@@ -72,7 +80,7 @@
                             <input type="button" id="search-recipient-button" onclick="window.wasmBindings.share_secret()" value="Encrypt" />
                 </form>
                 
-                <a id="shared-secret-link"></a>
+                <div id="share-secret-result" class="result"></div>
                             
             </article>  
       
@@ -84,12 +92,9 @@
                             <input type="password" id="decode-password-input" placeholder="Enter password" />
                             <input type="button" id="decrypt-secret-button" onclick="window.wasmBindings.decrypt_secret()" value="Decrypt" />
                 </form>
-                
-                <div id="decrypted-secret"></div>
-                
-                <div id="decrypt-secret-error"></div >
 
-                            
+                <div id="decrypt-secret-result" class="result"></div>
+
             </article>      
 
         </main>

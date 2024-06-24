@@ -18,17 +18,30 @@ extern "C" {
     fn log_many(a: &str, b: &str);
 }
 
+#[derive(Debug)]
+struct RegistrationViewModel {
+    username: String,
+}
+
+impl maud::Render for RegistrationViewModel {
+    fn render(&self) -> maud::Markup {
+        maud::html! {
+            p { (format!("Registered as {}", self.username)) }
+        }
+    }
+}
+
 #[wasm_bindgen]
 pub async fn register() {
     let res = register_internal().await;
 
     log(&format!("{res:?}"));
-    if let Err(err) = display_result("register-error", res) {
+    if let Err(err) = display_result("register-result", res) {
         log(&format!("Failed to display error: {:?}", err));
     }
 }
 
-async fn register_internal() -> Result<String, FrontendError> {
+async fn register_internal() -> Result<RegistrationViewModel, FrontendError> {
     log("registering");
 
     let document = window()
@@ -81,7 +94,7 @@ async fn register_internal() -> Result<String, FrontendError> {
                 FrontendError::DomError(format!("Failed to create child node: {e:?}"))
             })?;
 
-            Ok("Account created".to_owned())
+            Ok(RegistrationViewModel { username })
         }
         reqwest::StatusCode::CONFLICT => {
             log("username taken");
@@ -108,12 +121,25 @@ pub async fn find_recipient() {
     let res = find_recipient_internal().await;
 
     log(&format!("{res:?}"));
-    if let Err(err) = display_result("find-recipient-error", res) {
+    if let Err(err) = display_result("find-recipient-result", res) {
         log(&format!("Failed to display error: {:?}", err));
     }
 }
 
-async fn find_recipient_internal() -> Result<String, FrontendError> {
+#[derive(Debug)]
+struct FindRecipientViewModel {
+    username: String,
+}
+
+impl maud::Render for FindRecipientViewModel {
+    fn render(&self) -> maud::Markup {
+        maud::html! {
+            p { (format!("Found recipient {}", self.username)) }
+        }
+    }
+}
+
+async fn find_recipient_internal() -> Result<FindRecipientViewModel, FrontendError> {
     log("find recipient");
 
     let recipient_input: HtmlInputElement = get_element_by_id("search-recipient-input")?;
@@ -135,7 +161,24 @@ async fn find_recipient_internal() -> Result<String, FrontendError> {
     let mut s = STATE.lock().unwrap();
 
     s.recipient = Some(acc);
-    Ok("Found!".to_owned())
+    Ok(FindRecipientViewModel { username })
+}
+
+#[derive(Debug)]
+struct ShareSecretViewModel {
+    url: String,
+    recipient: String,
+}
+
+impl maud::Render for ShareSecretViewModel {
+    fn render(&self) -> maud::Markup {
+        maud::html! {
+            p {
+                "Share this link with " (self.recipient)
+            }
+            a href=(self.url) { (self.url) }
+        }
+    }
 }
 
 #[wasm_bindgen]
@@ -143,12 +186,12 @@ pub async fn share_secret() {
     let res = share_secret_internal().await;
 
     log(&format!("{res:?}"));
-    if let Err(err) = display_result("register-error", res) {
+    if let Err(err) = display_result("share-secret-result", res) {
         log(&format!("Failed to display error: {:?}", err));
     }
 }
 
-async fn share_secret_internal() -> Result<String, FrontendError> {
+async fn share_secret_internal() -> Result<ShareSecretViewModel, FrontendError> {
     let acc = {
         let s = STATE.lock().unwrap();
         s.recipient.clone()
@@ -194,15 +237,12 @@ async fn share_secret_internal() -> Result<String, FrontendError> {
                 .await
                 .map_err(|e| FrontendError::GeneralBackendError(e.to_string()))?;
 
-            let link = get_element_by_id::<HtmlElement>("shared-secret-link")?;
-
             let url = format!("http://localhost:8080/secret/{}", response_body.id);
 
-            link.set_attribute("href", &url)
-                .map_err(|e| FrontendError::DomError(format!("Failed to set href: {e:?}")))?;
-            link.set_inner_text(&url);
-
-            Ok("secret created".to_owned())
+            Ok(ShareSecretViewModel {
+                url,
+                recipient: acc.username,
+            })
         }
         _ => {
             log("failed to create secret");
@@ -213,17 +253,30 @@ async fn share_secret_internal() -> Result<String, FrontendError> {
     }
 }
 
+#[derive(Debug)]
+struct DecryptedSecretViewModel {
+    plaintext: String,
+}
+
+impl maud::Render for DecryptedSecretViewModel {
+    fn render(&self) -> maud::Markup {
+        maud::html! {
+            p { (self.plaintext) }
+        }
+    }
+}
+
 #[wasm_bindgen]
 pub async fn decrypt_secret() {
     let res = decrypt_secret_internal().await;
     log(&format!("{res:?}"));
 
-    if let Err(err) = display_result("decrypt-secret-error", res) {
+    if let Err(err) = display_result("decrypt-secret-result", res) {
         log(&format!("Failed to display error: {:?}", err));
     }
 }
 
-async fn decrypt_secret_internal() -> Result<String, FrontendError> {
+async fn decrypt_secret_internal() -> Result<DecryptedSecretViewModel, FrontendError> {
     let secret_id_input = get_element_by_id::<HtmlInputElement>("decrypt-secret-id-input")?;
     let secret_id = validate_input(None, &secret_id_input, "Secret ID cannot be empty")?;
 
@@ -255,10 +308,7 @@ async fn decrypt_secret_internal() -> Result<String, FrontendError> {
             .map_err(|e| FrontendError::Unknown(format!("Failed to decrypt secret: {e:?}")))?;
     drop(password);
 
-    let plaintext_element = get_element_by_id::<HtmlElement>("decrypted-secret")?;
-    plaintext_element.set_inner_text(&plaintext);
-
-    Ok("decrypted".to_owned())
+    Ok(DecryptedSecretViewModel { plaintext })
 }
 
 fn main() -> anyhow::Result<()> {
