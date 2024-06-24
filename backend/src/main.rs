@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use axum::{
     extract::State,
     http::StatusCode,
@@ -13,6 +15,34 @@ struct AppState {
     db_pool: SqlitePool,
 }
 
+fn delete_expired_secrets_periodically(
+    db_pool: SqlitePool,
+    delete_expired_interval: std::time::Duration,
+) {
+    tokio::spawn({
+        let db_pool = db_pool.clone();
+        async move {
+            loop {
+                log::debug!("Cleaning expired secrets...");
+
+                let id = sqlx::query(
+                    r#"
+                    delete from secrets where expiration < strftime('%s')
+                "#,
+                )
+                .execute(&db_pool)
+                .await;
+
+                match id {
+                    Ok(r) => log::info!("Cleaned {} expired secrets", r.rows_affected()),
+                    Err(e) => log::error!("Failed to clean expired secrets: {:?}", e),
+                }
+                tokio::time::sleep(delete_expired_interval).await;
+            }
+        }
+    });
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     simple_logger::SimpleLogger::new()
@@ -23,6 +53,8 @@ async fn main() -> anyhow::Result<()> {
     log::info!("{:?}", db_url);
 
     let db_pool = SqlitePool::connect(&db_url).await?;
+
+    delete_expired_secrets_periodically(db_pool.clone(), Duration::from_secs(600));
 
     let state = AppState { db_pool };
 
@@ -148,14 +180,16 @@ async fn create_secret(
         r#"
             INSERT INTO secrets (
                 ciphertext,
-                enc_key
+                enc_key,
+                expiration
             )
-            VALUES (?, ?)
+            VALUES (?, ?, ?)
             RETURNING id;
             "#,
     )
     .bind(&payload.ciphertext) // TODO: ciphertext and enc_key should be base64 encoded or not, not mixed
     .bind(&core::decode_base64(&payload.encapsulated_sym_key).unwrap())
+    .bind(payload.expiration)
     .execute(pool)
     .await;
 
@@ -198,9 +232,13 @@ async fn get_secret(
 ) -> (StatusCode, axum::Json<Option<core::GetSecret>>) {
     let pool = &state.db_pool;
 
+    // since expired secrets are deleted periodically, we exclude expired
+    // but not yet deleted secrets in the query
     let secret: Result<Secret, sqlx::Error> = sqlx::query_as(
         r#"
-            SELECT * FROM secrets WHERE id = ?;
+            SELECT * FROM secrets WHERE
+                id = ? and
+                expiration > strftime('%s');
             "#,
     )
     .bind(secret_id.0)

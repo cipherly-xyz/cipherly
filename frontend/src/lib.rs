@@ -1,5 +1,5 @@
-use wasm_bindgen::prelude::*;
-use web_sys::{window, HtmlElement, HtmlInputElement};
+use wasm_bindgen::{convert::IntoWasmAbi, prelude::*};
+use web_sys::{js_sys, window, HtmlElement, HtmlInputElement};
 
 #[derive(Debug)]
 pub enum FrontendError {
@@ -151,4 +151,56 @@ pub fn get_element_by_id<T: wasm_bindgen::JsCast>(id: &str) -> Result<T, Fronten
             "Failed to cast element".to_string(),
         )),
     }
+}
+
+pub fn get_selected_radio_option(name: &str) -> Result<String, FrontendError> {
+    let document = window()
+        .and_then(|win| win.document())
+        .ok_or(FrontendError::DomError(
+            "Failed to get document".to_string(),
+        ))?;
+
+    let radio_options = document.get_elements_by_name(name);
+
+    for i in 0..radio_options.length() {
+        let radio_option = radio_options
+            .get(i)
+            .ok_or(FrontendError::DomError(
+                "Failed to get radio option".to_string(),
+            ))?
+            .dyn_into::<HtmlInputElement>()
+            .map_err(|_| FrontendError::DomError("Failed to cast radio option".to_string()))?;
+
+        if radio_option.checked() {
+            return Ok(radio_option.value());
+        }
+    }
+
+    Err(FrontendError::InvalidInput {
+        input_element_id: name.to_string(),
+        hint_element_id: None,
+        message: "No option selected".to_string(),
+    })
+}
+
+pub fn format_date(unix: u32) -> Result<String, FrontendError> {
+    let unix_millis = unix as u64 * 1000;
+
+    js_sys::eval(&format!(
+        r"
+        const date = new Date({});
+
+        date.toLocaleTimeString(undefined, {{
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+        }})
+        ",
+        unix_millis
+    ))
+    .map_err(|_| FrontendError::Unknown("Failed to evaluate js".to_string()))?
+    .as_string()
+    .ok_or(FrontendError::Unknown(
+        "Failed to get js value as string".to_string(),
+    ))
 }

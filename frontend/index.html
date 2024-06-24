@@ -77,6 +77,26 @@
                 <form>
                             <input type="text" id="secret-input" placeholder="Enter secret" />
                             <small id="secret-hint"></small>
+                            
+                            <fieldset>
+                                <legend>⌛️ Destroy after</legend>
+                                <label>
+                                    <input type="radio" name="destroy-after" value="1hour" checked />
+                                    One hour
+                                </label>
+                                <label>
+                                    <input type="radio" name="destroy-after" value="1day" />
+                                    One day
+                                </label>
+                                <label>
+                                    <input type="radio" name="destroy-after" value="1week" />
+                                    One week
+                                </label>
+                                <label>
+                                    <input type="radio" name="destroy-after" value="10seconds" />
+                                    Ten seconds
+                                </label>
+                            </fieldset>
                             <input type="button" id="search-recipient-button" onclick="window.wasmBindings.share_secret()" value="Encrypt" />
                 </form>
                 

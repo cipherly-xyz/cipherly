@@ -18,6 +18,7 @@ pub struct Account {
 pub struct CreateSecret {
     pub ciphertext: String,
     pub encapsulated_sym_key: String,
+    pub expiration: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

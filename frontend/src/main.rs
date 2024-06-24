@@ -1,9 +1,12 @@
-use std::sync::Mutex;
+use std::{fmt::Debug, sync::Mutex};
 
 use crypto::EncryptionResult;
 use ml_kem::EncodedSizeUser;
 use reqwest::StatusCode;
-use secretshare::{display_result, get_element_by_id, validate_input, FrontendError};
+use secretshare::{
+    display_result, format_date, get_element_by_id, get_selected_radio_option, validate_input,
+    FrontendError,
+};
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlElement, HtmlInputElement};
 
@@ -178,6 +181,7 @@ async fn find_recipient_internal() -> Result<FindRecipientViewModel, FrontendErr
 struct ShareSecretViewModel {
     url: String,
     recipient: String,
+    expiration: String,
 }
 
 impl maud::Render for ShareSecretViewModel {
@@ -187,6 +191,9 @@ impl maud::Render for ShareSecretViewModel {
                 "Share this link with " (self.recipient)
             }
             a href=(self.url) { (self.url) }
+            p {
+                "⌛️ Expires at " (self.expiration)
+            }
         }
     }
 }
@@ -216,6 +223,24 @@ async fn share_secret_internal() -> Result<ShareSecretViewModel, FrontendError> 
     let secret_input: HtmlInputElement = get_element_by_id("secret-input")?;
     let secret = validate_input(Some(&secret_hint), &secret_input, "Secret cannot be empty")?;
 
+    let selected_timeout = get_selected_radio_option("destroy-after")?;
+
+    log(&format!("now: {:?}", web_time::SystemTime::now()));
+
+    let now = web_time::SystemTime::now();
+    let deadline = match selected_timeout.as_str() {
+        "1hour" => now + web_time::Duration::from_secs_f32(3600.0),
+        "1day" => now + web_time::Duration::from_secs_f32(86400.0),
+        "1week" => now + web_time::Duration::from_secs_f32(604800.0),
+        "10seconds" => now + web_time::Duration::from_secs_f32(10.0),
+        _ => todo!("invalid timeout selected"),
+    };
+
+    let deadline_unix = deadline
+        .duration_since(web_time::UNIX_EPOCH)
+        .map_err(|e| FrontendError::Unknown(format!("Failed to convert to unix time: {e:?}")))?
+        .as_secs() as u32;
+
     let ek_bytes = core::decode_base64(&acc.public_key)
         .map_err(|e| FrontendError::Unknown(format!("Failed to decode public key: {e:?}")))?;
 
@@ -230,6 +255,7 @@ async fn share_secret_internal() -> Result<ShareSecretViewModel, FrontendError> 
     let secret_body = core::CreateSecret {
         ciphertext: core::encode_bas64(&ciphertext),
         encapsulated_sym_key: core::encode_bas64(&encapsulated_sym_key),
+        expiration: deadline_unix,
     };
 
     let client = reqwest::Client::new();
@@ -249,9 +275,11 @@ async fn share_secret_internal() -> Result<ShareSecretViewModel, FrontendError> 
 
             let url = format!("http://localhost:8080/secret/{}", response_body.id);
 
+            let deadline_fmt = format_date(deadline_unix)?;
             Ok(ShareSecretViewModel {
                 url,
                 recipient: acc.username,
+                expiration: deadline_fmt,
             })
         }
         _ => {
@@ -313,8 +341,8 @@ async fn decrypt_secret_internal() -> Result<DecryptedSecretViewModel, FrontendE
             let ciphertext = core::decode_base64(&secret.ciphertext).map_err(|e| {
                 FrontendError::Unknown(format!("Failed to decode ciphertext: {e:?}"))
             })?;
-            let encapsulated_sym_key = core::decode_base64(&secret.encapsulated_sym_key)
-                .map_err(|e| {
+            let encapsulated_sym_key =
+                core::decode_base64(&secret.encapsulated_sym_key).map_err(|e| {
                     FrontendError::Unknown(format!(
                         "Failed to decode encapsulated symetric key: {e:?}"
                     ))

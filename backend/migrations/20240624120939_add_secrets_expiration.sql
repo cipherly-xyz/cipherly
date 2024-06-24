@@ -1,0 +1,1 @@
+alter table secrets add column expiration integer;
