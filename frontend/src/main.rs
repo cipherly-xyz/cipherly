@@ -367,5 +367,29 @@ async fn decrypt_secret_internal() -> Result<DecryptedSecretViewModel, FrontendE
 fn main() -> anyhow::Result<()> {
     console_error_panic_hook::set_once();
 
+    if let Err(err) = autofill_secret_id_from_url() {
+        log(&format!("Failed to autofill secret id: {:?}", err));
+    }
+
+    Ok(())
+}
+
+fn autofill_secret_id_from_url() -> anyhow::Result<()> {
+    let path = window()
+        .ok_or(anyhow::anyhow!("Failed to get window"))?
+        .location()
+        .pathname()
+        .map_err(|e| anyhow::anyhow!("{e:?}"))?;
+
+    let mut segments = path.split('/');
+    segments.next();
+
+    if let Some("secret") = segments.next() {
+        let secret_id = segments
+            .next()
+            .ok_or(anyhow::anyhow!("Secret path, but no id"))?;
+        let secret_id_input = get_element_by_id::<HtmlInputElement>("decrypt-secret-id-input")?;
+        secret_id_input.set_value(secret_id);
+    }
     Ok(())
 }

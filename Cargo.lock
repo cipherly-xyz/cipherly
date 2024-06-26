@@ -1701,6 +1701,7 @@ dependencies = [
  "once_cell",
  "rand",
  "reqwest",
+ "thiserror",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",

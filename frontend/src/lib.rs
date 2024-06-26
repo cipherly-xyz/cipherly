@@ -1,7 +1,7 @@
-use wasm_bindgen::{convert::IntoWasmAbi, prelude::*};
+use wasm_bindgen::prelude::*;
 use web_sys::{js_sys, window, HtmlElement, HtmlInputElement};
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum FrontendError {
     InvalidInput {
         input_element_id: String,
