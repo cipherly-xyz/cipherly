@@ -2,6 +2,7 @@ use ::kem::Decapsulate;
 use ::kem::Encapsulate;
 use ml_kem::*;
 use ml_kem::{KemCore, B32};
+use sha3::Digest;
 
 use aes_gcm_siv::{
     aead::{Aead, KeyInit},
@@ -98,6 +99,12 @@ pub fn aes_dec(ciphertext: &[u8], key: &[u8]) -> anyhow::Result<Vec<u8>> {
         .map_err(|e| anyhow::anyhow!("Failed to aes decrypt: {:?}", e))?;
 
     Ok(ciphertext)
+}
+
+pub fn encapsulation_key_fingerprint(encapsulation_key: &[u8]) -> String {
+    let mut hasher = sha3::Sha3_256::new();
+    hasher.update(encapsulation_key);
+    format!("{:X}", hasher.finalize())
 }
 
 #[cfg(test)]

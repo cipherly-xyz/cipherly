@@ -24,12 +24,26 @@ extern "C" {
 #[derive(Debug)]
 struct RegistrationViewModel {
     username: String,
+    encapsulation_key_fingerprint: String,
+    profile_url: String,
+    profile_url_with_fingerprint: String,
 }
 
 impl maud::Render for RegistrationViewModel {
     fn render(&self) -> maud::Markup {
         maud::html! {
             p { (format!("Registered as {}", self.username)) }
+            p { (format!("Encapsulation key fingerprint: {}", self.encapsulation_key_fingerprint)) }
+            p {
+                a href=(self.profile_url) {
+                    (self.profile_url)
+                }
+            }
+            p {
+                a href=(self.profile_url_with_fingerprint) {
+                    (self.profile_url_with_fingerprint)
+                }
+            }
         }
     }
 }
@@ -77,9 +91,13 @@ async fn register_internal() -> Result<RegistrationViewModel, FrontendError> {
     let (_, ek) = crypto::generate_keys::<crypto::MlKem1024>(password.as_str());
     drop(password);
 
+    let ek_bytes = ek.as_bytes();
+
+    let encapsulation_key_fingerprint = crypto::encapsulation_key_fingerprint(&ek_bytes);
+
     let acc = core::CreateAccount {
         username: username.to_string(),
-        public_key: core::encode_bas64(&ek.as_bytes()).to_string(),
+        public_key: core::encode_bas64(&ek_bytes).to_string(),
     };
 
     let client = reqwest::Client::new();
@@ -97,7 +115,16 @@ async fn register_internal() -> Result<RegistrationViewModel, FrontendError> {
                 FrontendError::DomError(format!("Failed to create child node: {e:?}"))
             })?;
 
-            Ok(RegistrationViewModel { username })
+            let profile_url = format!("http://localhost:8080/user/{username}");
+            let profile_url_with_fingerprint =
+                format!("http://localhost:8080/user/{username}/{encapsulation_key_fingerprint}");
+
+            Ok(RegistrationViewModel {
+                username,
+                encapsulation_key_fingerprint,
+                profile_url,
+                profile_url_with_fingerprint,
+            })
         }
         reqwest::StatusCode::CONFLICT => {
             log("username taken");
@@ -115,9 +142,14 @@ async fn register_internal() -> Result<RegistrationViewModel, FrontendError> {
 
 struct State {
     recipient: Option<core::Account>,
+    expected_fingerprint: Option<ExpectedFingerprint>,
 }
-static STATE: once_cell::sync::Lazy<Mutex<State>> =
-    once_cell::sync::Lazy::new(|| Mutex::new(State { recipient: None }));
+static STATE: once_cell::sync::Lazy<Mutex<State>> = once_cell::sync::Lazy::new(|| {
+    Mutex::new(State {
+        recipient: None,
+        expected_fingerprint: None,
+    })
+});
 
 #[wasm_bindgen]
 pub async fn find_recipient() {
@@ -208,6 +240,23 @@ pub async fn share_secret() {
     }
 }
 
+fn verify_fingerprint(
+    acc: &core::Account,
+    expected: &ExpectedFingerprint,
+) -> Result<(), FrontendError> {
+    let raw_ek_bytes =
+        core::decode_base64(&acc.public_key).expect("Failed to decode encapsulation key");
+
+    let actual_recipient_ek_fingerprint = crypto::encapsulation_key_fingerprint(&raw_ek_bytes);
+    if actual_recipient_ek_fingerprint != expected.fingerprint {
+        return Err(FrontendError::Unknown(format!(
+            "Recipient key mismatch. Expected: {}, actual: {actual_recipient_ek_fingerprint}",
+            expected.fingerprint
+        )));
+    }
+    Ok(())
+}
+
 async fn share_secret_internal() -> Result<ShareSecretViewModel, FrontendError> {
     let acc = {
         let s = STATE.lock().unwrap();
@@ -218,6 +267,19 @@ async fn share_secret_internal() -> Result<ShareSecretViewModel, FrontendError> 
     ))?;
 
     log(&format!("recipient: {:?}", acc.username));
+
+    // new block to avoid clippy false positive about unreleased locks with the await further down: https://github.com/rust-lang/rust-clippy/issues/6353
+    {
+        let mut s = STATE.lock().unwrap();
+
+        if let Some(expected_fingerprint) = &s.expected_fingerprint {
+            if expected_fingerprint.username == acc.username {
+                verify_fingerprint(&acc, expected_fingerprint)?;
+            } else {
+                s.expected_fingerprint = None;
+            }
+        }
+    }
 
     let secret_hint: HtmlElement = get_element_by_id("secret-hint")?;
     let secret_input: HtmlInputElement = get_element_by_id("secret-input")?;
@@ -367,14 +429,19 @@ async fn decrypt_secret_internal() -> Result<DecryptedSecretViewModel, FrontendE
 fn main() -> anyhow::Result<()> {
     console_error_panic_hook::set_once();
 
-    if let Err(err) = autofill_secret_id_from_url() {
+    if let Err(err) = autofill_stuff_from_url() {
         log(&format!("Failed to autofill secret id: {:?}", err));
     }
 
     Ok(())
 }
 
-fn autofill_secret_id_from_url() -> anyhow::Result<()> {
+struct ExpectedFingerprint {
+    fingerprint: String,
+    username: String,
+}
+
+fn autofill_stuff_from_url() -> anyhow::Result<()> {
     let path = window()
         .ok_or(anyhow::anyhow!("Failed to get window"))?
         .location()
@@ -384,12 +451,30 @@ fn autofill_secret_id_from_url() -> anyhow::Result<()> {
     let mut segments = path.split('/');
     segments.next();
 
-    if let Some("secret") = segments.next() {
-        let secret_id = segments
-            .next()
-            .ok_or(anyhow::anyhow!("Secret path, but no id"))?;
-        let secret_id_input = get_element_by_id::<HtmlInputElement>("decrypt-secret-id-input")?;
-        secret_id_input.set_value(secret_id);
+    match segments.next() {
+        Some("secret") => {
+            let secret_id = segments
+                .next()
+                .ok_or(anyhow::anyhow!("Secret path, but no id"))?;
+            let secret_id_input = get_element_by_id::<HtmlInputElement>("decrypt-secret-id-input")?;
+            secret_id_input.set_value(secret_id);
+        }
+        Some("user") => {
+            let username = segments
+                .next()
+                .ok_or(anyhow::anyhow!("User path, but no username"))?;
+            let username_input = get_element_by_id::<HtmlInputElement>("search-recipient-input")?;
+            username_input.set_value(username);
+
+            if let Some(fingerprint) = segments.next() {
+                let mut state = STATE.lock().unwrap();
+                state.expected_fingerprint = Some(ExpectedFingerprint {
+                    fingerprint: fingerprint.to_owned(),
+                    username: username.to_owned(),
+                });
+            }
+        }
+        _ => (),
     }
     Ok(())
 }

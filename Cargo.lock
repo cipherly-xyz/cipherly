@@ -1701,6 +1701,7 @@ dependencies = [
  "once_cell",
  "rand",
  "reqwest",
+ "sha3",
  "thiserror",
  "wasm-bindgen",
  "wasm-bindgen-futures",
