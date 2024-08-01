@@ -61,16 +61,6 @@ pub async fn register() {
 async fn register_internal() -> Result<RegistrationViewModel, FrontendError> {
     log("registering");
 
-    let document = window()
-        .and_then(|win| win.document())
-        .ok_or(FrontendError::DomError(
-            "Could not access the document".to_string(),
-        ))?;
-
-    let body = document.body().ok_or(FrontendError::DomError(
-        "Could not access DOM body".to_string(),
-    ))?;
-
     let username_input: HtmlInputElement = get_element_by_id("username-input")?;
     let password_input = get_element_by_id("password-input")?;
     let username_hint: HtmlElement = get_element_by_id("username-hint")?;
@@ -110,11 +100,6 @@ async fn register_internal() -> Result<RegistrationViewModel, FrontendError> {
 
     match resp.status() {
         reqwest::StatusCode::CREATED => {
-            let text_node = document.create_text_node("Account created!");
-            body.append_child(text_node.as_ref()).map_err(|e| {
-                FrontendError::DomError(format!("Failed to create child node: {e:?}"))
-            })?;
-
             let profile_url = format!("http://localhost:8080/user/{username}");
             let profile_url_with_fingerprint =
                 format!("http://localhost:8080/user/{username}/{encapsulation_key_fingerprint}");
