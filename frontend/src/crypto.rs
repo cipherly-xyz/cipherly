@@ -2,6 +2,7 @@ use ::kem::Decapsulate;
 use ::kem::Encapsulate;
 use ml_kem::*;
 use ml_kem::{KemCore, B32};
+use rand::Rng;
 use sha3::Digest;
 
 use aes_gcm_siv::{
@@ -48,17 +49,20 @@ pub fn ek_shared_secret<K: KemCore>(ek: &K::EncapsulationKey) -> (Vec<u8>, Vec<u
 pub struct EncryptionResult {
     pub ciphertext: Vec<u8>,
     pub encapsulated_sym_key: Vec<u8>,
+    pub nonce: Vec<u8>,
 }
 pub fn encrypt(encapsulation_key: &[u8], plaintext: &str) -> anyhow::Result<EncryptionResult> {
     let ek = ek_from_bytes::<MlKem1024>(encapsulation_key);
 
     let (encapsulated_sym_key, sym_key) = ek_shared_secret::<MlKem1024>(&ek);
 
-    let ciphertext = aes_enc(plaintext.as_bytes(), &sym_key)?;
+    let nonce = rand::thread_rng().gen::<[u8; 12]>();
+    let ciphertext = aes_enc(plaintext.as_bytes(), &sym_key, &nonce)?;
 
     Ok(EncryptionResult {
         ciphertext,
         encapsulated_sym_key,
+        nonce: nonce.to_vec(),
     })
 }
 
@@ -66,6 +70,7 @@ pub fn decrypt<K: KemCore>(
     password: &str,
     ciphertext: &[u8],
     encapsulated_sym_key: &[u8],
+    nonce: &[u8],
 ) -> anyhow::Result<String> {
     let encapsulated_secret = Ciphertext::<K>::from_slice(encapsulated_sym_key);
 
@@ -75,15 +80,15 @@ pub fn decrypt<K: KemCore>(
         .decapsulate(encapsulated_secret)
         .map_err(|e| anyhow::anyhow!("Failed to decapsulate symetric key: {:?}", e))?;
 
-    let plaintext = aes_dec(ciphertext, &sym_key)
+    let plaintext = aes_dec(ciphertext, &sym_key, nonce)
         .map_err(|e| anyhow::anyhow!("Failed to decrypt ciphertext: {:?}", e))?;
 
     String::from_utf8(plaintext).map_err(|e| anyhow::anyhow!(e))
 }
 
-pub fn aes_enc(plaintext: &[u8], key: &[u8]) -> anyhow::Result<Vec<u8>> {
+pub fn aes_enc(plaintext: &[u8], key: &[u8], nonce: &[u8]) -> anyhow::Result<Vec<u8>> {
     let cipher = Aes256GcmSiv::new_from_slice(key)?;
-    let nonce = Nonce::from_slice(b"unique nonce"); // 96-bits; unique per message
+    let nonce = Nonce::from_slice(nonce);
     let ciphertext = cipher
         .encrypt(nonce, plaintext.as_ref())
         .map_err(|e| anyhow::anyhow!("Failed to aes encrypt: {:?}", e))?;
@@ -91,9 +96,9 @@ pub fn aes_enc(plaintext: &[u8], key: &[u8]) -> anyhow::Result<Vec<u8>> {
     Ok(ciphertext)
 }
 
-pub fn aes_dec(ciphertext: &[u8], key: &[u8]) -> anyhow::Result<Vec<u8>> {
+pub fn aes_dec(ciphertext: &[u8], key: &[u8], nonce: &[u8]) -> anyhow::Result<Vec<u8>> {
     let cipher = Aes256GcmSiv::new_from_slice(key)?;
-    let nonce = Nonce::from_slice(b"unique nonce"); // 96-bits; unique per message
+    let nonce = Nonce::from_slice(nonce);
     let ciphertext = cipher
         .decrypt(nonce, ciphertext.as_ref())
         .map_err(|e| anyhow::anyhow!("Failed to aes decrypt: {:?}", e))?;
@@ -122,9 +127,11 @@ mod tests {
         let EncryptionResult {
             ciphertext,
             encapsulated_sym_key,
+            nonce,
         } = encrypt(&encapsulaton_key.as_bytes(), plaintext).unwrap();
 
-        let decrypted = decrypt::<MlKem1024>(password, &ciphertext, &encapsulated_sym_key).unwrap();
+        let decrypted =
+            decrypt::<MlKem1024>(password, &ciphertext, &encapsulated_sym_key, &nonce).unwrap();
 
         assert_eq!(decrypted, plaintext);
     }
@@ -140,9 +147,10 @@ mod tests {
 
         let (_, k_send) = ek.encapsulate(&mut rng).unwrap();
 
-        let ciphertext = aes_enc(plaintext, &k_send).unwrap();
+        let nonce = b"unique nonce";
+        let ciphertext = aes_enc(plaintext, &k_send, nonce).unwrap();
 
-        let dec_plaintext = aes_dec(&ciphertext, &k_send).unwrap();
+        let dec_plaintext = aes_dec(&ciphertext, &k_send, nonce).unwrap();
 
         assert_eq!(dec_plaintext, plaintext);
     }
@@ -172,9 +180,11 @@ mod tests {
 
         let (_, ek) = generate_keys::<MlKem1024>(password);
         let (ct, k_send) = ek.encapsulate(&mut rng).unwrap();
-        let aes_cipher = aes_enc(b"plaintext", &k_send).unwrap();
 
-        let k_recv = decrypt::<MlKem1024>(password, &aes_cipher, &ct).unwrap();
+        let nonce = b"unique nonce";
+        let aes_cipher = aes_enc(b"plaintext", &k_send, nonce).unwrap();
+
+        let k_recv = decrypt::<MlKem1024>(password, &aes_cipher, &ct, nonce).unwrap();
 
         assert_eq!(k_recv, "plaintext")
     }

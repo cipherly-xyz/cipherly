@@ -309,6 +309,7 @@ async fn share_secret_internal() -> Result<ShareSecretViewModel, FrontendError> 
     let EncryptionResult {
         ciphertext,
         encapsulated_sym_key,
+        nonce,
     } = crypto::encrypt(&ek_bytes, &secret)
         .map_err(|err| FrontendError::Unknown(format!("Failed to encrypt: {err:?}")))?;
 
@@ -318,6 +319,7 @@ async fn share_secret_internal() -> Result<ShareSecretViewModel, FrontendError> 
         ciphertext: core::encode_bas64(&ciphertext),
         encapsulated_sym_key: core::encode_bas64(&encapsulated_sym_key),
         expiration: deadline_unix,
+        nonce: core::encode_bas64(&nonce),
     };
 
     let client = reqwest::Client::new();
@@ -409,12 +411,16 @@ async fn decrypt_secret_internal() -> Result<DecryptedSecretViewModel, FrontendE
                         "Failed to decode encapsulated symetric key: {e:?}"
                     ))
                 })?;
+            let nonce = core::decode_base64(&secret.nonce)
+                .map_err(|e| FrontendError::Unknown(format!("Failed to decode nonce: {e:?}")))?;
 
-            let plaintext =
-                crypto::decrypt::<ml_kem::MlKem1024>(&password, &ciphertext, &encapsulated_sym_key)
-                    .map_err(|e| {
-                        FrontendError::Unknown(format!("Failed to decrypt secret: {e:?}"))
-                    })?;
+            let plaintext = crypto::decrypt::<ml_kem::MlKem1024>(
+                &password,
+                &ciphertext,
+                &encapsulated_sym_key,
+                &nonce,
+            )
+            .map_err(|e| FrontendError::Unknown(format!("Failed to decrypt secret: {e:?}")))?;
             drop(password);
 
             Ok(DecryptedSecretViewModel { plaintext })

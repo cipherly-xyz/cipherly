@@ -181,15 +181,17 @@ async fn create_secret(
             INSERT INTO secrets (
                 ciphertext,
                 enc_key,
-                expiration
+                expiration,
+                nonce
             )
-            VALUES (?, ?, ?)
+            VALUES (?, ?, ?, ?)
             RETURNING id;
             "#,
     )
     .bind(&payload.ciphertext) // TODO: ciphertext and enc_key should be base64 encoded or not, not mixed
     .bind(&core::decode_base64(&payload.encapsulated_sym_key).unwrap())
     .bind(payload.expiration)
+    .bind(&core::decode_base64(&payload.nonce).unwrap())
     .execute(pool)
     .await;
 
@@ -213,6 +215,7 @@ struct Secret {
     id: i64,
     ciphertext: String,
     enc_key: Vec<u8>,
+    nonce: Vec<u8>,
 }
 
 impl From<Secret> for core::GetSecret {
@@ -221,6 +224,7 @@ impl From<Secret> for core::GetSecret {
             id: secret.id,
             ciphertext: secret.ciphertext,
             encapsulated_sym_key: core::encode_bas64(&secret.enc_key),
+            nonce: core::encode_bas64(&secret.nonce),
         }
     }
 }

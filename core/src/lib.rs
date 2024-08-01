@@ -19,6 +19,7 @@ pub struct CreateSecret {
     pub ciphertext: String,
     pub encapsulated_sym_key: String,
     pub expiration: u32,
+    pub nonce: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -31,6 +32,7 @@ pub struct GetSecret {
     pub id: i64,
     pub ciphertext: String,
     pub encapsulated_sym_key: String,
+    pub nonce: String,
 }
 
 pub fn decode_base64(payload: &str) -> Result<Vec<u8>, base64::DecodeError> {
