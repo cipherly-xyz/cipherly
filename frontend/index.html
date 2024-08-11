@@ -45,6 +45,7 @@
             
             <article>
                 <h3>Register</h3>
+                <div id="register-result" class="result">
                 <fieldset>
                     <label>
                         Username
@@ -58,8 +59,20 @@
                         <small id="password-hint"></small>
                     </label>
                 </fieldset>
-                <button id="encrypt" onclick="window.wasmBindings.register()">Register</button>
-                <div id="register-result" class="result">
+                <script>
+                  function register() {
+                    // wrapping the function call in a setTimeout allows the DOM update to take effect before the function returns
+                    // otherwise the loading indicator won't be displayed
+                    const button = document.getElementById('register');
+                    button.setAttribute('aria-busy', "true");
+                    setTimeout(() => {
+                      window.wasmBindings.register()
+                      button.setAttribute('aria-busy', "false");
+                    }, 100);
+                  }
+                </script>
+                <button id="register" onclick="register()">Register</button>
+                </div>
                 </div>
             </article>
             
