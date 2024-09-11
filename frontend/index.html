@@ -8,7 +8,13 @@
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
   />
-  
+  <script defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+      integrity="sha512-ytM6hP1K9BkRTjUQZpxZKFjJ2TvE4QXaK7phVymsm7NimaI5H09TWWW6f2JMbonLp4ftYU6xfwQGoe3C8jta9A=="
+      crossorigin="anonymous"
+  >
+  </script>
+
   <style>
     .result > div {
         padding: 1em;
@@ -23,112 +29,166 @@
     .result > .success {
         border-color: var(--pico-form-element-valid-border-color);
     }
+    .debug-warning {
+        border-color: var(--pico-form-element-invalid-border-color);
+        padding: 1em;
+        margin: 1em;
+        border-radius: 5px;
+        border-width: 1px;
+        border-style: solid;
+    }
+    [x-cloak] { display: none !important; }
   </style>
 </head>
-<body>
+<body
+    x-data = "{ debug: false }"
+    x-init = "debug = new URLSearchParams(window.location.search).get('debug')"
+    >
     </header>
         <h1>Secret share</h1>
+        <article class="debug-warning" x-show="debug == true">
+            <p>SecretShare is running in debug mode. Do not enter any secret information or passwords.</p>
+        </article>
     </header>
     
         <main class="container">
-           
-            <!-- <article>
-                
-                <label>
-                    Enter your secret
-                    <input type="text" id="secret-input" value="my secret"/>
-                </label>
-    
-                <button id="encrypt">Encrypt 🔒</button>
-                </article> -->
-            
-            
-            <article>
+
+            <article x-data="{
+                model: {
+                    username: 'alice',
+                    password: ''
+                }
+                }">
                 <h3>Register</h3>
+                <p x-show="debug == true" x-text="JSON.stringify($data)"></p>
+
                 <div id="register-result" class="result">
+                    <div x-cloak x-show="model.success" class="success">
+                        <p>
+                            Registered as <span x-text="model.success?.username"></span>
+                        </p>
+                        <p>
+                            Encapsulation key fingerprint: <span x-text="model.success?.encapsulation_key_fingerprint"></span>
+                        </p>
+                        <p>
+                            <a :href="model.success?.profile_url" x-text="model.success?.profile_url"></a>
+                        </p>
+                        <p>
+                            <a :href="model.success?.profile_url_with_fingerprint" x-text="model.success?.profile_url_with_fingerprint"></a>
+                        </p>
+                    </div>
                 <fieldset>
                     <label>
                         Username
-                        <input type="text" id="username-input" value="alice"/>
-                        <small id="username-hint"></small>
+                        <input type="text" id="username-input" x-model="model.username" :aria-invalid="model.username_error ? true : false"/>
+                        <small x-cloak x-show="model.username_error" x-text="model.username_error"></small>
                             
                     </label>
                     <label>
                         Password
-                        <input type="password" id="password-input"/>
-                        <small id="password-hint"></small>
+                        <input type="password" id="password-input" x-model="model.password" :aria-invalid="model.password_error ? true : false"/>
+                        <small x-cloak x-show="model.password_error" x-text="model.password_error"></small>
+
                     </label>
                 </fieldset>
-                <script>
-                  function register() {
-                    // wrapping the function call in a setTimeout allows the DOM update to take effect before the function returns
-                    // otherwise the loading indicator won't be displayed
-                    const button = document.getElementById('register');
-                    button.setAttribute('aria-busy', "true");
-                    setTimeout(() => {
-                      window.wasmBindings.register()
-                      button.setAttribute('aria-busy', "false");
-                    }, 100);
-                  }
-                </script>
-                <button id="register" onclick="register()">Register</button>
+                <button type="button" id="register" @click="model = await window.wasmBindings.register($data.model)">Register</button>
+                <div x-cloak x-show="model.error" class="error">
+                    <small  x-text="model.error"></small>
+                </div>
+                
                 </div>
                 </div>
             </article>
             
-            <article>
+            <article x-data="{
+                model: {
+                    recipient: null,
+                    search: 'alice',
+                    secret: '',
+                    timeout: '1hour',
+                    recipient: null,
+                    expected_fingerprint: new URLSearchParams(window.location.search).get('fingerprint'),
+                    expected_fingerprint_user: new URLSearchParams(window.location.search).get('username'),
+                }
+                }">
                 <h3>Share secret</h3>
-                
+                <p x-show="debug == true" x-text="JSON.stringify($data)"></p>
                 <form role="search">
-                            <input name="search" type="search" id="search-recipient-input" placeholder="Enter recipient" />
+                            <input name="search" type="search" id="search-recipient-input" placeholder="Enter recipient" x-model="model.search" />
                             
-                            <input type="button" id="search-recipient-button" onclick="window.wasmBindings.find_recipient()" value="Search" />
+                            <button type="button" id="search-recipient-button" @click="model = await window.wasmBindings.find_recipient($data.model)" value="Search">Search</button>
                 </form>
+                
                 <div id="find-recipient-result" class="result"></div >
-                
-                
-                <form>
-                            <input type="text" id="secret-input" placeholder="Enter secret" />
+                <div x-cloack x-show="!model.error && model.recipient">
+                    <p>
+                        Found recipient <span x-text="model.recipient?.username"></span>
+                    </p>
+                </div>
+                <div>
+                <form >
+                            <input type="text" id="secret-input" placeholder="Enter secret" x-model="model.secret" />
                             <small id="secret-hint"></small>
                             
-                            <fieldset>
-                                <legend>⌛️ Destroy after</legend>
-                                <label>
-                                    <input type="radio" name="destroy-after" value="1hour" checked />
-                                    One hour
-                                </label>
-                                <label>
-                                    <input type="radio" name="destroy-after" value="1day" />
-                                    One day
-                                </label>
-                                <label>
-                                    <input type="radio" name="destroy-after" value="1week" />
-                                    One week
-                                </label>
-                                <label>
-                                    <input type="radio" name="destroy-after" value="10seconds" />
-                                    Ten seconds
-                                </label>
-                            </fieldset>
-                            <input type="button" id="search-recipient-button" onclick="window.wasmBindings.share_secret()" value="Encrypt" />
+                            <fieldset> 
+                                <label>⌛️ Destroy after
+                                <select id="destroy-after" name="destroy-after" x-model="model.timeout">
+                                    <option value="1hour" selected>One hour</option>
+                                    <option value="1day">One day</option>
+                                    <option value="1week">One week</option>
+                                    <option value="10seconds">Ten seconds</option>
+                                </select>
+                                </fieldset>
+                           </fieldset>
+
+                           <button :disabled="!model.recipient" type="button" id="search-recipient-button" @click="model = await window.wasmBindings.share_secret($data.model)" value="Encrypt" />Encrypt</button>
                 </form>
-                
-                <div id="share-secret-result" class="result"></div>
+                <div id="share-secret-result" class="result">
+                    <div x-cloak x-show="model.error" class="error">
+                        <small  x-text="model.error"></small>
+                    </div>
+                    
+                    <div x-cloak x-show="model.success" class="success">
+                        <p>
+                            Secret shared with <span x-text="model.success?.recipient"></span>
+                        </p>
+                        <p>
+                            <a :href="model.success?.url" x-text="model.success?.url"></a>
+                        </p>
+                        <p>
+                            ⌛️ Expires at <span x-text="model.success?.expiration"></span>
+                        </p>
+                    </div>
+                </div>
                             
             </article>  
       
-            <article>
+            <article x-data="{
+                model: {
+                    secret_id: null
+                }
+                }"
+                x-init="model.secret_id = new URLSearchParams(window.location.search).get('secret_id')"
+            >
                 <h3>Decrypt secret</h3>
+                <p x-show="debug == true" x-text="JSON.stringify(model)"></p>
                 
                 <form role="search">
-                            <input name="search" type="search" id="decrypt-secret-id-input" placeholder="Enter secret id" />
-                            <input type="password" id="decode-password-input" placeholder="Enter password" />
-                            <input type="button" id="decrypt-secret-button" onclick="window.wasmBindings.decrypt_secret()" value="Decrypt" />
+                            <input name="search" type="search" id="decrypt-secret-id-input" placeholder="Enter secret ID" x-model="model.secret_id" />
+                            <input type="password" id="decode-password-input" placeholder="Enter password" x-model="model.password"/>
+                            <button type="button" id="decrypt-secret-button" @click="model = await window.wasmBindings.decrypt_secret($data.model)" value="Decrypt">Decrypt</button>
                 </form>
-
-                <div id="decrypt-secret-result" class="result"></div>
-
-            </article>      
+                <div class="result">
+                    <div x-cloak x-show="model.error" class="error">
+                        <small  x-text="model.error"></small>
+                    </div>
+                    
+                    <div x-cloak x-show="model.plaintext" class="success">
+                        <p x-text="model.plaintext"></p>
+                    </div>
+                </div>
+                
+            </article>
 
         </main>
 </body>

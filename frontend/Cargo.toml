@@ -7,7 +7,7 @@ edition = "2021"
 console_error_panic_hook = "0.1.7"
 wasm-bindgen = "0.2.92"
 wasm-bindgen-futures = "0.4.42"
-web-sys = { version = "0.3.69", features = ["Window", "Document", "HtmlElement", "Text", "MouseEvent", "HtmlInputElement", "NodeList", "Navigator", "Location" ] }
+web-sys = { version = "0.3.69", features = [  ] }
 
 anyhow = "*"
 getrandom = { version = "0.2", features = ["js"] }
@@ -21,8 +21,9 @@ aes-gcm-siv = "0.11.1"
 core = { path = "../core" }
 reqwest = { version = "0.12.4", features = ["json"] }
 once_cell = "1.19.0"
-maud = "0.26.0"
 web-time = "1.1.0"
 thiserror = "1.0.61"
 sha3 = "0.10.8"
 argon2 = "0.5.3"
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.4"
