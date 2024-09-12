@@ -1,3 +1,3 @@
 #!/usr/bin/sh
-/sqlx database create
+/sqlx database setup
 /backend
