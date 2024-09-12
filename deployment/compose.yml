@@ -1,11 +1,10 @@
 services:
   frontend:
-    #build: .
-    image: "secretshare-frontend"
+    image: "ghcr.io/tufteddeer/secretshare-frontend:latest"
     ports:
       - "8000:80"
   backend:
-    image: "secretshare"
+    image: "ghcr.io/tufteddeer/secretshare-backend:latest"
     environment:
       "DATABASE_URL": "sqlite:///data/db.sqlite"
     ports:
