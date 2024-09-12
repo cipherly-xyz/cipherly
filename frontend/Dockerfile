@@ -11,7 +11,7 @@ COPY . .
 
 WORKDIR /secretshare/frontend
 
-RUN trunk build
+RUN trunk build --release
 
 FROM caddy:alpine
 
