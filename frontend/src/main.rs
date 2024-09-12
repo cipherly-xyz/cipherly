@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use crypto::EncryptionResult;
 use ml_kem::EncodedSizeUser;
 use reqwest::StatusCode;
-use secretshare::{format_date, FrontendError};
+use secretshare::{format_date, FrontendError, url};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -96,7 +96,7 @@ async fn register_internal(
 
     let client = reqwest::Client::new();
     let resp = client
-        .post("http://localhost:8080/api/accounts")
+        .post(url("/api/accounts"))
         .json(&acc)
         .send()
         .await
@@ -104,9 +104,9 @@ async fn register_internal(
 
     match resp.status() {
         reqwest::StatusCode::CREATED => {
-            let profile_url = format!("http://localhost:8080/?username={username}");
+            let profile_url = url(&format!("/?username={username}"));
             let profile_url_with_fingerprint =
-                format!("http://localhost:8080/?username={username}&fingerprint={encapsulation_key_fingerprint}");
+                url(&format!("/?username={username}&fingerprint={encapsulation_key_fingerprint}"));
 
             Ok(RegistrationSuccessViewModel {
                 username: username.to_string(),
@@ -178,7 +178,7 @@ async fn find_recipient_internal(
 
     let client = reqwest::Client::new();
     let resp = client
-        .get(format!("http://localhost:8080/api/accounts/{}", username))
+        .get(url(&format!("/api/accounts/{}", username)))
         .send()
         .await
         .map_err(|err| FrontendError::GeneralBackendError(err.to_string()))?;
@@ -305,7 +305,7 @@ async fn share_secret_internal(
 
     let client = reqwest::Client::new();
     let resp = client
-        .post("http://localhost:8080/api/secrets")
+        .post(url("/api/secrets"))
         .json(&secret_body)
         .send()
         .await
@@ -318,7 +318,7 @@ async fn share_secret_internal(
                 .await
                 .map_err(|e| FrontendError::GeneralBackendError(e.to_string()))?;
 
-            let url = format!("http://localhost:8080/?secret_id={}", response_body.id);
+            let url = url(&format!("/?secret_id={}", response_body.id));
 
             let deadline_fmt = format_date(deadline_unix)?;
             Ok(ShareSecretSuccessViewModel {
@@ -382,7 +382,7 @@ async fn decrypt_secret_internal(
     }
     let client = reqwest::Client::new();
     let resp = client
-        .get(format!("http://localhost:8080/api/secrets/{}", secret_id))
+        .get(url(&format!("/api/secrets/{}", secret_id)))
         .send()
         .await
         .map_err(|err| FrontendError::GeneralBackendError(err.to_string()))?;

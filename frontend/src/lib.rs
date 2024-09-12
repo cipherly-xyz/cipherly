@@ -1,4 +1,5 @@
 use web_sys::js_sys;
+use wasm_bindgen::prelude::*;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FrontendError {
@@ -41,4 +42,13 @@ pub fn format_date(unix: u32) -> Result<String, FrontendError> {
     .ok_or(FrontendError::Unknown(
         "Failed to get js value as string".to_string(),
     ))
+}
+
+#[wasm_bindgen(inline_js = "export function host() { return window.location.hostname + ':' + window.location.port }")]
+extern "C" {
+    fn host() -> String;
+}
+
+pub fn url(endpoint: &str) -> String {
+    format!("http://{}{}", host(), endpoint)
 }
