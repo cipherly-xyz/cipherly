@@ -1,0 +1,6 @@
+target
+*sqlite*
+.env
+dist
+bruno
+.idea

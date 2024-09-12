@@ -1,0 +1,26 @@
+services:
+  frontend:
+    #build: .
+    image: "secretshare-frontend"
+    ports:
+      - "8000:80"
+  backend:
+    image: "secretshare"
+    environment:
+      "DATABASE_URL": "sqlite:///data/db.sqlite"
+    ports:
+      - "3000:3000"
+    volumes:
+      - data:/data
+  caddy:
+      image: caddy:alpine
+      ports:
+        - 8080:80
+        #- 443:443
+      volumes:
+        - ./Caddyfile:/etc/caddy/Caddyfile
+        # - ./certs:/data
+      restart: always
+
+volumes:
+  data:

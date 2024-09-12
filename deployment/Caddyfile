@@ -1,0 +1,8 @@
+http://*:80/api/* {
+    reverse_proxy backend:3000
+}
+
+http://*:80 {
+    log
+    reverse_proxy frontend:80
+}
