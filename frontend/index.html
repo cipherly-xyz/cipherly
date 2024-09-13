@@ -103,7 +103,7 @@
             <article x-data="{
                 model: {
                     recipient: null,
-                    search: 'alice',
+                    search: new URLSearchParams(window.location.search).get('username'),
                     secret: '',
                     timeout: '1hour',
                     recipient: null,
