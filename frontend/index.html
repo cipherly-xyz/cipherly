@@ -50,11 +50,25 @@
   </style>
 </head>
 <body
-    x-data = "{ debug: false }"
+    x-data = "{
+    debug: false,
+    view: new URLSearchParams(window.location.search).get('secret_id') ? 'decrypt' : new URLSearchParams(window.location.search).get('username') ? 'share' : 'home',
+    }"
     x-init = "debug = new URLSearchParams(window.location.search).get('debug')"
     >
-    </header>
-        <h1>Secret share</h1>
+    <header class="container">
+        <nav>
+            <ul>
+                <li @click="view = 'home'">
+                    <h1>Secret share</h1>
+                </li>
+            </ul>
+            <ul>
+                <li><a :class="view == 'home' ? 'primary' : 'secondary'" @click="view = 'home'">Home</a></li>
+                <li><a :class="view == 'registration' ? 'primary' : 'secondary'" @click="view = 'registration'">Register</a></li>
+                <li><a :class="view == 'share' ? 'primary' : 'secondary'" @click="view = 'share'">Share</a></li>
+            </ul>
+        </nav>
         <article class="debug-warning"  x-cloak x-show="debug == true">
             <p>SecretShare is running in debug mode. Do not enter any secret information or passwords.</p>
         </article>
@@ -62,7 +76,23 @@
     
         <main class="container">
 
-            <article x-data="{
+            <article x-cloak x-show="view == 'home'">
+                <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                </p>
+                <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                </p>
+                
+                <button class="outline" @click="view = 'registration'">
+                    I want to receive secrets
+                </button>
+                <button class="outline" @click="view = 'share'">
+                    I want to share a secret
+                </button>
+            </article>
+            
+            <article x-cloak x-show="view == 'registration'" x-data="{
                 model: {
                     username: 'alice',
                     password: ''
@@ -109,7 +139,7 @@
                 </div>
             </article>
             
-            <article x-data="{
+            <article  x-cloak x-show="view == 'share'" x-data="{
                 model: {
                     recipient: null,
                     search: new URLSearchParams(window.location.search).get('username'),
@@ -191,11 +221,13 @@
                 </div> 
             </article>  
       
-            <article x-data="{
-                model: {
-                    secret_id: null
-                }
-                }"
+            <article
+                x-cloak x-show="view == 'decrypt'" 
+                x-data="{
+                    model: {
+                        secret_id: null
+                    }
+                    }"
                 x-init="model.secret_id = new URLSearchParams(window.location.search).get('secret_id')"
             >
                 <h3>Decrypt secret</h3>
