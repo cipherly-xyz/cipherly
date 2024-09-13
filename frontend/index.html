@@ -152,11 +152,11 @@
                 }">
                 <h3>Share secret</h3>
                 <p x-show="debug == true"  x-cloak x-text="JSON.stringify($data)"></p>
-                <form role="search">
+                <div role="search">
                             <input name="search" type="search" id="search-recipient-input" placeholder="Enter recipient" x-model="model.search" />
                             
                             <button type="button" id="search-recipient-button" @click="model = await window.wasmBindings.find_recipient($data.model)" value="Search">Search</button>
-                </form>
+                </div>
                 
                 <div x-cloak x-show="!model.error && model.recipient">
                     <p>
@@ -185,7 +185,7 @@
                         </details>
                     </div>
                 </div>
-                <form x-cloak x-show="model.recipient">
+                <div x-cloak x-show="model.recipient">
                             <input type="text" id="secret-input" placeholder="Enter secret" x-model="model.secret" />
                             <small id="secret-hint"></small>
                             
@@ -201,7 +201,7 @@
                         </fieldset>
     
                         <button :disabled="!model.recipient" type="button" id="search-recipient-button" @click="model = await window.wasmBindings.share_secret($data.model)" value="Encrypt" />Encrypt</button>
-                </form>
+                </div>
                 <div id="share-secret-result" class="result">
                     <div x-cloak x-show="model.error" class="error">
                         <small  x-text="model.error"></small>
