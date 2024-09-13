@@ -136,6 +136,7 @@ pub struct SearchRecipientModel {
     error: Option<String>,
     expected_fingerprint: Option<String>,
     expected_fingerprint_user: Option<String>,
+    fingerprint: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -162,9 +163,10 @@ pub async fn find_recipient(store: JsValue) -> JsValue {
     let res = find_recipient_internal(&model.search, expected_fingerprint).await;
 
     match res {
-        Ok(acc) => {
+        Ok((acc, fingerprint)) => {
             model.error = None;
             model.recipient = Some(acc);
+            model.fingerprint = Some(fingerprint);
         }
         Err(e) => {
             model.error = Some(format!("{e:?}"));
@@ -177,7 +179,7 @@ pub async fn find_recipient(store: JsValue) -> JsValue {
 async fn find_recipient_internal(
     username: &String,
     expected_fingerprint: Option<ExpectedFingerprint>,
-) -> Result<Account, FrontendError> {
+) -> Result<(Account, String), FrontendError> {
     log(&format!("find recipient: username = {username}"));
 
     let client = reqwest::Client::new();
@@ -193,12 +195,18 @@ async fn find_recipient_internal(
                 .json::<core::Account>()
                 .await
                 .map_err(|err| FrontendError::GeneralBackendError(err.to_string()))?;
-            if let Some(fingerprint) = expected_fingerprint {
-                if fingerprint.username == acc.username {
-                    verify_fingerprint(&acc, &fingerprint)?;
+            
+            let raw_ek_bytes =
+                core::decode_base64(&acc.public_key).expect("Failed to decode encapsulation key");
+        
+            let ek_fingerprint = crypto::encapsulation_key_fingerprint(&raw_ek_bytes);
+            
+            if let Some(expected_fingerprint) = expected_fingerprint {
+                if expected_fingerprint.username == acc.username {
+                    verify_fingerprint(&ek_fingerprint, &expected_fingerprint)?;
                 }
             }
-            Ok(acc)
+            Ok((acc, ek_fingerprint))
         }
         reqwest::StatusCode::NOT_FOUND => {
             Err(FrontendError::Unknown("Recipient not found".to_owned()))
@@ -253,16 +261,13 @@ pub async fn share_secret(model: JsValue) -> JsValue {
 }
 
 fn verify_fingerprint(
-    acc: &core::Account,
+    encapsulation_key_fingerprint: &str,
     expected: &ExpectedFingerprint,
 ) -> Result<(), FrontendError> {
-    let raw_ek_bytes =
-        core::decode_base64(&acc.public_key).expect("Failed to decode encapsulation key");
 
-    let actual_recipient_ek_fingerprint = crypto::encapsulation_key_fingerprint(&raw_ek_bytes);
-    if actual_recipient_ek_fingerprint != expected.fingerprint {
+    if encapsulation_key_fingerprint != expected.fingerprint {
         return Err(FrontendError::Unknown(format!(
-            "Recipient key mismatch. Expected: {}, actual: {actual_recipient_ek_fingerprint}",
+            "Recipient key mismatch. Expected: {}, actual: {encapsulation_key_fingerprint}",
             expected.fingerprint
         )));
     }
