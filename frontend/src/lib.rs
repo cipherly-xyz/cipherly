@@ -1,5 +1,5 @@
-use web_sys::js_sys;
 use wasm_bindgen::prelude::*;
+use web_sys::js_sys;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FrontendError {
@@ -11,7 +11,6 @@ pub enum FrontendError {
 impl std::fmt::Display for FrontendError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            
             Self::Unknown(err) | Self::GeneralBackendError(err) => {
                 write!(f, "Unknown error: {}", err)
             }
@@ -44,7 +43,9 @@ pub fn format_date(unix: u32) -> Result<String, FrontendError> {
     ))
 }
 
-#[wasm_bindgen(inline_js = "export function host() { return window.location.hostname + ':' + window.location.port }")]
+#[wasm_bindgen(
+    inline_js = "export function host() { return window.location.hostname + ':' + window.location.port }"
+)]
 extern "C" {
     fn host() -> String;
 }

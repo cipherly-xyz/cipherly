@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use crypto::EncryptionResult;
 use ml_kem::EncodedSizeUser;
 use reqwest::StatusCode;
-use secretshare::{format_date, FrontendError, url};
+use secretshare::{format_date, url, FrontendError};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -105,8 +105,9 @@ async fn register_internal(
     match resp.status() {
         reqwest::StatusCode::CREATED => {
             let profile_url = url(&format!("/?username={username}"));
-            let profile_url_with_fingerprint =
-                url(&format!("/?username={username}&fingerprint={encapsulation_key_fingerprint}"));
+            let profile_url_with_fingerprint = url(&format!(
+                "/?username={username}&fingerprint={encapsulation_key_fingerprint}"
+            ));
 
             Ok(RegistrationSuccessViewModel {
                 username: username.to_string(),
@@ -148,10 +149,15 @@ pub async fn find_recipient(store: JsValue) -> JsValue {
     let mut model: SearchRecipientModel = serde_wasm_bindgen::from_value(store).unwrap();
     log(&format!("find recipient: {:?}", model));
 
-    let expected_fingerprint = model.expected_fingerprint.as_ref().and_then(|fingerprint| model.expected_fingerprint_user.as_ref().map(|username| ExpectedFingerprint {
-        fingerprint: fingerprint.clone(),
-        username: username.clone(),
-    }));
+    let expected_fingerprint = model.expected_fingerprint.as_ref().and_then(|fingerprint| {
+        model
+            .expected_fingerprint_user
+            .as_ref()
+            .map(|username| ExpectedFingerprint {
+                fingerprint: fingerprint.clone(),
+                username: username.clone(),
+            })
+    });
 
     let res = find_recipient_internal(&model.search, expected_fingerprint).await;
 

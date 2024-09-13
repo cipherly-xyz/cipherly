@@ -1,10 +1,10 @@
 use ::kem::Decapsulate;
 use ::kem::Encapsulate;
+use argon2::{Algorithm, Argon2, Version};
 use ml_kem::*;
 use ml_kem::{KemCore, B32};
 use rand::Rng;
 use sha3::Digest;
-use argon2::{Algorithm, Argon2, Version};
 
 use aes_gcm_siv::{
     aead::{Aead, KeyInit},
@@ -21,18 +21,20 @@ pub fn key_derivation(password: &str) -> [u8; 64] {
     // https://www.rfc-editor.org/rfc/rfc9106.html#name-parameter-choice
     // recommendation 2: 3 iterations, 4 lanes,64MiB RAM
     let mut params_builder = argon2::ParamsBuilder::DEFAULT;
-    let params = params_builder.t_cost(3)
+    let params = params_builder
+        .t_cost(3)
         .p_cost(4)
         .m_cost(65536)
         .build()
         .unwrap();
-    Argon2::new(Algorithm::Argon2id, Version::V0x13, params).hash_password_into(password.as_bytes(), salt, &mut output_key_material).unwrap();
+    Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
+        .hash_password_into(password.as_bytes(), salt, &mut output_key_material)
+        .unwrap();
 
     output_key_material
 }
 
 pub fn generate_keys<K: KemCore>(input: &str) -> (K::DecapsulationKey, K::EncapsulationKey) {
-
     let key_input = key_derivation(input);
 
     let d = B32::from_slice(&key_input[..32]);
@@ -216,14 +218,19 @@ mod tests {
             .expect("failed to decrypt");
         assert_eq!(&plaintext, &plaintext);
     }
-    
+
     #[test]
     /// This test detects breaking changes in the key derivation function
     fn key_derivation_test() {
         let password = "somepassword";
         let key = key_derivation(password);
 
-        let expected = [95, 255, 54, 134, 11, 122, 185, 73, 182, 107, 224, 95, 190, 233, 10, 38, 149, 102, 139, 228, 43, 153, 142, 164, 91, 77, 209, 227, 206, 160, 98, 70, 106, 215, 20, 220, 22, 161, 161, 239, 177, 59, 5, 44, 185, 65, 200, 56, 171, 5, 130, 120, 115, 96, 159, 85, 201, 23, 169, 218, 189, 215, 55, 180];
+        let expected = [
+            95, 255, 54, 134, 11, 122, 185, 73, 182, 107, 224, 95, 190, 233, 10, 38, 149, 102, 139,
+            228, 43, 153, 142, 164, 91, 77, 209, 227, 206, 160, 98, 70, 106, 215, 20, 220, 22, 161,
+            161, 239, 177, 59, 5, 44, 185, 65, 200, 56, 171, 5, 130, 120, 115, 96, 159, 85, 201,
+            23, 169, 218, 189, 215, 55, 180,
+        ];
         assert_eq!(key, expected);
     }
 }
