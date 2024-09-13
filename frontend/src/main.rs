@@ -148,14 +148,12 @@ pub async fn find_recipient(store: JsValue) -> JsValue {
     let mut model: SearchRecipientModel = serde_wasm_bindgen::from_value(store).unwrap();
     log(&format!("find recipient: {:?}", model));
 
-    let res = find_recipient_internal(
-        &model.search,
-        Some(ExpectedFingerprint {
-            fingerprint: model.expected_fingerprint.as_ref().unwrap().clone(),
-            username: model.expected_fingerprint_user.as_ref().unwrap().clone(),
-        }),
-    )
-    .await;
+    let expected_fingerprint = model.expected_fingerprint.as_ref().and_then(|fingerprint| model.expected_fingerprint_user.as_ref().map(|username| ExpectedFingerprint {
+        fingerprint: fingerprint.clone(),
+        username: username.clone(),
+    }));
+
+    let res = find_recipient_internal(&model.search, expected_fingerprint).await;
 
     match res {
         Ok(acc) => {
