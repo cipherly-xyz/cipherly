@@ -46,7 +46,7 @@
     >
     </header>
         <h1>Secret share</h1>
-        <article class="debug-warning" x-show="debug == true">
+        <article class="debug-warning"  x-cloak x-show="debug == true">
             <p>SecretShare is running in debug mode. Do not enter any secret information or passwords.</p>
         </article>
     </header>
@@ -60,7 +60,7 @@
                 }
                 }">
                 <h3>Register</h3>
-                <p x-show="debug == true" x-text="JSON.stringify($data)"></p>
+                <p x-show="debug == true" x-cloak x-text="JSON.stringify($data)"></p>
 
                 <div id="register-result" class="result">
                     <div x-cloak x-show="model.success" class="success">
@@ -112,7 +112,7 @@
                 }
                 }">
                 <h3>Share secret</h3>
-                <p x-show="debug == true" x-text="JSON.stringify($data)"></p>
+                <p x-show="debug == true"  x-cloak x-text="JSON.stringify($data)"></p>
                 <form role="search">
                             <input name="search" type="search" id="search-recipient-input" placeholder="Enter recipient" x-model="model.search" />
                             
@@ -120,7 +120,7 @@
                 </form>
                 
                 <div id="find-recipient-result" class="result"></div >
-                <div x-cloack x-show="!model.error && model.recipient">
+                <div x-cloak x-show="!model.error && model.recipient">
                     <p>
                         Found recipient <span x-text="model.recipient?.username"></span>
                     </p>
@@ -171,7 +171,7 @@
                 x-init="model.secret_id = new URLSearchParams(window.location.search).get('secret_id')"
             >
                 <h3>Decrypt secret</h3>
-                <p x-show="debug == true" x-text="JSON.stringify(model)"></p>
+                <p x-show="debug == true" x-cloak x-text="JSON.stringify(model)"></p>
                 
                 <form role="search">
                             <input name="search" type="search" id="decrypt-secret-id-input" placeholder="Enter secret ID" x-model="model.secret_id" />
