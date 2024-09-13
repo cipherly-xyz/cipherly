@@ -132,7 +132,7 @@
                     <p>
                         Found recipient <b><span x-text="model.recipient?.username"></span></b>
                     </p>
-                    <div x-cloak x-show="model.expected_fingerprint && model.expected_fingerprint_user && model.recipient && !model.error">
+                    <div x-cloak x-show="model.expected_fingerprint&& model.recipient && model.expected_fingerprint_user == model.recipient.username && !model.error">
                         <details>
                             <summary>
                                 Verified recipient fingerprint (show)
@@ -143,7 +143,7 @@
                             <span x-text="model.fingerprint">
                         </details>
                     </div>
-                    <div x-cloak x-show="!model.expected_fingerprint && model.recipient && !model.error">
+                    <div x-cloak x-show="(!model.expected_fingerprint && model.recipient && !model.error) || model.expected_fingerprint_user != model.recipient.username ">
                         <details>
                             <summary>
                                 Recipient fingerprint (show)
