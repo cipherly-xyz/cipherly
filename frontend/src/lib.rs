@@ -44,12 +44,12 @@ pub fn format_date(unix: u32) -> Result<String, FrontendError> {
 }
 
 #[wasm_bindgen(
-    inline_js = "export function host() { return window.location.hostname + ':' + window.location.port }"
+    inline_js = "export function host() { return window.location.protocol + '//' + window.location.hostname + ':' + window.location.port }"
 )]
 extern "C" {
     fn host() -> String;
 }
 
 pub fn url(endpoint: &str) -> String {
-    format!("http://{}{}", host(), endpoint)
+    format!("{}{}", host(), endpoint)
 }
