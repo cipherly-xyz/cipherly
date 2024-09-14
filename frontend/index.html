@@ -279,7 +279,6 @@
                 <p x-show="debug == true" x-cloak x-text="JSON.stringify(model)"></p>
                 
                 <form role="search">
-                            <input name="search" type="search" id="decrypt-secret-id-input" placeholder="Enter secret ID" x-model="model.secret_id" />
                             <input type="password" id="decode-password-input" placeholder="Enter password" x-model="model.password"/>
                             <button type="button" id="decrypt-secret-button" @click="model = await window.wasmBindings.decrypt_secret($data.model)" value="Decrypt">Decrypt</button>
                 </form>
