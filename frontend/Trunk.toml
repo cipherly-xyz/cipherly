@@ -1,0 +1,6 @@
+[build]
+release = true
+
+[serve]
+[[proxy]]
+backend = "http://localhost:3000/api"
