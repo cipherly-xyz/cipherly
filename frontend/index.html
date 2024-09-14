@@ -188,10 +188,12 @@
                 <h3>Share secret</h3>
                 <p x-show="debug == true"  x-cloak x-text="JSON.stringify($data)"></p>
                 <div role="search">
-                            <input name="search" type="search" id="search-recipient-input" placeholder="Enter recipient" x-model="model.search" />
-                            
+                            <input name="search" type="search" id="search-recipient-input" placeholder="Enter recipient" x-model="model.search" :aria-invalid="model.username_error ? true : false"/>
                             <button type="button" id="search-recipient-button" @click="model = await window.wasmBindings.find_recipient($data.model)" value="Search">Search</button>
+               
                 </div>
+                <small x-cloak x-show="model.username_error" x-text="model.username_error"></small>
+                
                 
                 <div x-cloak x-show="!model.error && model.recipient">
                     <p>

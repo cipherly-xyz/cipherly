@@ -137,6 +137,7 @@ pub struct SearchRecipientModel {
     expected_fingerprint: Option<String>,
     expected_fingerprint_user: Option<String>,
     fingerprint: Option<String>,
+    username_error: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -147,7 +148,23 @@ pub struct Recipient {
 
 #[wasm_bindgen]
 pub async fn find_recipient(store: JsValue) -> JsValue {
-    let mut model: SearchRecipientModel = serde_wasm_bindgen::from_value(store).unwrap();
+    let mut model: SearchRecipientModel = match serde_wasm_bindgen::from_value(store) {
+        Ok(m) => m,
+        Err(e) => {
+            return serde_wasm_bindgen::to_value(&SearchRecipientModel {
+                recipient: None,
+                search: "".to_string(),
+                secret: "".to_string(),
+                timeout: "".to_string(),
+                success: None,
+                error: None,
+                expected_fingerprint: None,
+                expected_fingerprint_user: None,
+                fingerprint: None,
+                username_error: Some("Username can't be empty".to_string()),
+            }).unwrap();
+        }
+    };
     log(&format!("find recipient: {:?}", model));
 
     let expected_fingerprint = model.expected_fingerprint.as_ref().and_then(|fingerprint| {
@@ -173,6 +190,7 @@ pub async fn find_recipient(store: JsValue) -> JsValue {
         }
     }
 
+    model.username_error = None;
     serde_wasm_bindgen::to_value(&model).unwrap()
 }
 
