@@ -92,12 +92,24 @@
                 </button>
             </article>
             
-            <article x-cloak x-show="view == 'registration'" x-data="{
-                model: {
-                    username: 'alice',
-                    password: ''
-                }
-                }">
+            <article x-cloak x-show="view == 'registration'"
+                x-data="{
+                    model: {
+                        username: 'alice',
+                        password: ''
+                    },
+                    
+                    viewChanged: function(view) {
+                        if (view == 'registration') {
+                            this.model = {
+                                username: 'alice',
+                                password: ''
+                            }
+                        }
+                    },
+                }"
+                x-effect="viewChanged(view)"
+            >
                 <h3>Register</h3>
                 <p x-show="debug == true" x-cloak x-text="JSON.stringify($data)"></p>
 
@@ -156,8 +168,23 @@
                     recipient: null,
                     expected_fingerprint: new URLSearchParams(window.location.search).get('fingerprint'),
                     expected_fingerprint_user: new URLSearchParams(window.location.search).get('username'),
-                }
-                }">
+                },
+                
+                viewChanged: function(view) {
+                    if (view == 'share') {
+                        this.model = {
+                            search: new URLSearchParams(window.location.search).get('username'),
+                            expected_fingerprint: new URLSearchParams(window.location.search).get('fingerprint'),
+                            expected_fingerprint_user: new URLSearchParams(window.location.search).get('username'),
+                            recipient: null,
+                            secret: '',
+                            timeout: '1hour',
+                        }
+                    }
+                },
+                }"
+                x-effect="viewChanged(view)"
+            >
                 <h3>Share secret</h3>
                 <p x-show="debug == true"  x-cloak x-text="JSON.stringify($data)"></p>
                 <div role="search">
@@ -181,7 +208,7 @@
                             <span x-text="model.fingerprint">
                         </details>
                     </div>
-                    <div x-cloak x-show="(!model.expected_fingerprint && model.recipient && !model.error) || model.expected_fingerprint_user != model.recipient.username ">
+                    <div x-cloak x-show="(!model.expected_fingerprint && model.recipient && !model.error) || model.expected_fingerprint_user != model.recipient?.username ">
                         <details>
                             <summary>
                                 Recipient fingerprint (show)
@@ -233,10 +260,18 @@
                 x-cloak x-show="view == 'decrypt'" 
                 x-data="{
                     model: {
-                        secret_id: null
+                        secret_id: new URLSearchParams(window.location.search).get('secret_id')
+                    },
+                    
+                    viewChanged: function(_) {
+                        if (this.view == 'decrypt') {
+                            model = {
+                                secret_id: new URLSearchParams(window.location.search).get('secret_id')
+                            }
+                        }
                     }
                     }"
-                x-init="model.secret_id = new URLSearchParams(window.location.search).get('secret_id')"
+                x-effect="viewChanged(view)"
             >
                 <h3>Decrypt secret</h3>
                 <p x-show="debug == true" x-cloak x-text="JSON.stringify(model)"></p>
