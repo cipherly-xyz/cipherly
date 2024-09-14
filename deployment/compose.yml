@@ -13,13 +13,20 @@ services:
       - data:/data
   caddy:
       image: caddy:alpine
+      environment:
+        "HOSTNAME": ${HOSTNAME}
       ports:
-        - 8080:80
-        #- 443:443
+        # Binding low ports might not work on all machines
+        # with rootless docker
+        - 80:80
+        - 443:443
       volumes:
         - ./Caddyfile:/etc/caddy/Caddyfile
-        # - ./certs:/data
+        - caddy_data:/data
+        - caddy_config:/config
       restart: always
 
 volumes:
   data:
+  caddy_data:
+  caddy_config:
