@@ -162,7 +162,8 @@ pub async fn find_recipient(store: JsValue) -> JsValue {
                 expected_fingerprint_user: None,
                 fingerprint: None,
                 username_error: Some("Username can't be empty".to_string()),
-            }).unwrap();
+            })
+            .unwrap();
         }
     };
     log(&format!("find recipient: {:?}", model));
@@ -213,12 +214,12 @@ async fn find_recipient_internal(
                 .json::<core::Account>()
                 .await
                 .map_err(|err| FrontendError::GeneralBackendError(err.to_string()))?;
-            
+
             let raw_ek_bytes =
                 core::decode_base64(&acc.public_key).expect("Failed to decode encapsulation key");
-        
+
             let ek_fingerprint = crypto::encapsulation_key_fingerprint(&raw_ek_bytes);
-            
+
             if let Some(expected_fingerprint) = expected_fingerprint {
                 if expected_fingerprint.username == acc.username {
                     verify_fingerprint(&ek_fingerprint, &expected_fingerprint)?;
@@ -282,7 +283,6 @@ fn verify_fingerprint(
     encapsulation_key_fingerprint: &str,
     expected: &ExpectedFingerprint,
 ) -> Result<(), FrontendError> {
-
     if encapsulation_key_fingerprint != expected.fingerprint {
         return Err(FrontendError::Unknown(format!(
             "Recipient key mismatch. Expected: {}, actual: {encapsulation_key_fingerprint}",
