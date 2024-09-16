@@ -60,7 +60,10 @@
         <nav>
             <ul>
                 <li @click="view = 'home'">
-                    <h1>Cipherly</h1>
+                    <hgroup>
+                        <h1>Cipherly</h1>
+                        <p>a secure way to exchange secrets</p>
+                    </hgroup>
                 </li>
             </ul>
             <ul>
@@ -77,12 +80,16 @@
         <main class="container">
 
             <article x-cloak x-show="view == 'home'">
-                <p>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                </p>
-                <p>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                </p>
+
+                <h2>Features</h2>
+                <ul>
+                    <li>Post quantum security</li>
+                    <li>Easy sharing via secure links that can safely be shared publicly</li>
+                    <li>No need to exchange keys or passwords</li>
+                    <li>Automatic deletion of secrets</li>
+                    <li>Recipient authentication using digital fingerprints</li>
+                    <li>No registation needed to send a secret</li>
+                </ul>
                 
                 <button class="outline" @click="view = 'registration'">
                     I want to receive secrets
@@ -111,27 +118,42 @@
                 x-effect="viewChanged(view)"
             >
                 <h3>Register</h3>
+                
+                <p>
+                    You need an account to receive secrets. Others will need your username to share their secrets with you.
+                </p>
+                <p>
+                    The secrecy of your secrets depends on your password. If you forget your password, you will lose access to your secrets.
+                </p>
+                
                 <p x-show="debug == true" x-cloak x-text="JSON.stringify($data)"></p>
 
-                <div id="register-result" class="result">
+                <div class="result">
                     <div x-cloak x-show="model.success" class="success">
                         <p>
-                            Registered as <span x-text="model.success?.username"></span>
+                            Registered as <b><span x-text="model.success?.username"></span></b>
                         </p>
                         <p>
                             Encapsulation key fingerprint
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0 4.5 10.5a7.464 7.464 0 0 1-1.15 3.993m1.989 3.559A11.209 11.209 0 0 0 8.25 10.5a3.75 3.75 0 1 1 7.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 0 1-3.6 9.75m6.633-4.596a18.666 18.666 0 0 1-2.485 5.33" />
                             </svg>
+                        <details>
+                            <summary><u>What is this?</u></summary>
+                            Using your the fingerprint, others will be able to verify that they are sharing secrets with the correct person.
+                            You can and should publish the fingerprint.
+                        </details>
                         </p>
                         <p>
                             <span x-text="model.success?.encapsulation_key_fingerprint"></span>
                         </p>
                             </details>
                         </p>
+                        Use the links below to share your profile with others:
                         <p>
                             <a :href="model.success?.profile_url" x-text="model.success?.profile_url"></a>
                         </p>
+                        This link allows others to automatically verify your fingerprint:
                         <p>
                             <a :href="model.success?.profile_url_with_fingerprint" x-text="model.success?.profile_url_with_fingerprint"></a>
                         </p>
@@ -139,18 +161,18 @@
                 <fieldset>
                     <label>
                         Username
-                        <input type="text" id="username-input" x-model="model.username" :aria-invalid="model.username_error ? true : false"/>
+                        <input type="text" x-model="model.username" :aria-invalid="model.username_error ? true : false"/>
                         <small x-cloak x-show="model.username_error" x-text="model.username_error"></small>
                             
                     </label>
                     <label>
                         Password
-                        <input type="password" id="password-input" x-model="model.password" :aria-invalid="model.password_error ? true : false"/>
+                        <input type="password" x-model="model.password" :aria-invalid="model.password_error ? true : false"/>
                         <small x-cloak x-show="model.password_error" x-text="model.password_error"></small>
 
                     </label>
                 </fieldset>
-                <button type="button" id="register" @click="model = await window.wasmBindings.register($data.model)">Register</button>
+                <button type="button" @click="model = await window.wasmBindings.register($data.model)">Register</button>
                 <div x-cloak x-show="model.error" class="error">
                     <small  x-text="model.error"></small>
                 </div>
@@ -221,18 +243,24 @@
                             <span x-text="model.fingerprint">
                         </details>
                     </div>
+                    <details>
+                        <summary><u>What is this?</u></summary>
+                        The fingerprint should match the one the recipient got when they created their account.
+                        Different fingerprints mean that you entered the wrong username or somebody manipulated the account of the recipient and will be able to read the secret.
+                        <p>If you use a link that contains a username and fingerprint, it will be atomatically validated for you.</p>
+                    </details>
                 </div>
                 <div x-cloak x-show="model.recipient">
-                            <input type="text" id="secret-input" placeholder="Enter secret" x-model="model.secret" />
+                            <textarea placeholder="Enter secret" x-model="model.secret" ></textarea>
                             <small id="secret-hint"></small>
                             
                             <fieldset> 
-                                <label>⌛️ Destroy after
-                                <select id="destroy-after" name="destroy-after" x-model="model.timeout">
+                                <label>⌛️ Automatically delete after
+                                <select x-model="model.timeout">
                                     <option value="1hour" selected>One hour</option>
                                     <option value="1day">One day</option>
                                     <option value="1week">One week</option>
-                                    <option value="10seconds">Ten seconds</option>
+                                    <option x-show="debug == true" value="10seconds">Ten seconds</option>
                                 </select>
                                 </fieldset>
                         </fieldset>
