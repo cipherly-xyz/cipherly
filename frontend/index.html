@@ -95,14 +95,14 @@
             <article x-cloak x-show="view == 'registration'"
                 x-data="{
                     model: {
-                        username: 'alice',
+                        username: '',
                         password: ''
                     },
                     
                     viewChanged: function(view) {
                         if (view == 'registration') {
                             this.model = {
-                                username: 'alice',
+                                username: '',
                                 password: ''
                             }
                         }
