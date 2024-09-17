@@ -83,7 +83,7 @@ async fn register_internal(
 ) -> Result<RegistrationSuccessViewModel, FrontendError> {
     log("registering");
 
-    let (_, ek) = crypto::generate_keys::<crypto::MlKem1024>(password);
+    let (_, ek) = crypto::generate_keys::<crypto::MlKem1024>(password, username);
 
     let ek_bytes = ek.as_bytes();
 
@@ -372,6 +372,7 @@ struct DecryptedSecretViewModel {
 struct DecryptSecretModel {
     secret_id: String,
     password: String,
+    username: String,
     plaintext: Option<String>,
     error: Option<String>,
 }
@@ -381,7 +382,7 @@ pub async fn decrypt_secret(model: JsValue) -> JsValue {
     let mut model: DecryptSecretModel = serde_wasm_bindgen::from_value(model).unwrap();
     log(&format!("{model:?}"));
 
-    let res = decrypt_secret_internal(&model.secret_id, &model.password).await;
+    let res = decrypt_secret_internal(&model.secret_id, &model.password, &model.username).await;
     log(&format!("{res:?}"));
 
     match res {
@@ -400,6 +401,7 @@ pub async fn decrypt_secret(model: JsValue) -> JsValue {
 async fn decrypt_secret_internal(
     secret_id: &String,
     password: &String,
+    username: &String,
 ) -> Result<DecryptedSecretViewModel, FrontendError> {
     if secret_id.is_empty() {
         return Err(FrontendError::Unknown("Secret ID is empty".to_string()));
@@ -437,6 +439,7 @@ async fn decrypt_secret_internal(
 
             let plaintext = crypto::decrypt::<ml_kem::MlKem1024>(
                 &password,
+                &username,
                 &ciphertext,
                 &encapsulated_sym_key,
                 &nonce,

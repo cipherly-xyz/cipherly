@@ -14,9 +14,9 @@ use aes_gcm_siv::{
 // re-export for convenience
 pub use ml_kem::MlKem1024;
 
-pub fn key_derivation(password: &str) -> [u8; 64] {
+pub fn key_derivation(password: &str, username: &str) -> [u8; 64] {
     let mut output_key_material = [0u8; 64];
-    let salt = b"example saltxxxx";
+    let salt = format!("cipherly{username}");
 
     // https://www.rfc-editor.org/rfc/rfc9106.html#name-parameter-choice
     // recommendation 2: 3 iterations, 4 lanes,64MiB RAM
@@ -28,14 +28,21 @@ pub fn key_derivation(password: &str) -> [u8; 64] {
         .build()
         .unwrap();
     Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
-        .hash_password_into(password.as_bytes(), salt, &mut output_key_material)
+        .hash_password_into(
+            password.as_bytes(),
+            salt.as_bytes(),
+            &mut output_key_material,
+        )
         .unwrap();
 
     output_key_material
 }
 
-pub fn generate_keys<K: KemCore>(input: &str) -> (K::DecapsulationKey, K::EncapsulationKey) {
-    let key_input = key_derivation(input);
+pub fn generate_keys<K: KemCore>(
+    input: &str,
+    username: &str,
+) -> (K::DecapsulationKey, K::EncapsulationKey) {
+    let key_input = key_derivation(input, username);
 
     let d = B32::from_slice(&key_input[..32]);
     let z = B32::from_slice(&key_input[32..]);
@@ -80,13 +87,14 @@ pub fn encrypt(encapsulation_key: &[u8], plaintext: &str) -> anyhow::Result<Encr
 
 pub fn decrypt<K: KemCore>(
     password: &str,
+    username: &str,
     ciphertext: &[u8],
     encapsulated_sym_key: &[u8],
     nonce: &[u8],
 ) -> anyhow::Result<String> {
     let encapsulated_secret = Ciphertext::<K>::from_slice(encapsulated_sym_key);
 
-    let (dk, _) = generate_keys::<K>(password);
+    let (dk, _) = generate_keys::<K>(password, username);
 
     let sym_key = dk
         .decapsulate(encapsulated_secret)
@@ -132,9 +140,10 @@ mod tests {
     #[test]
     fn encrypt_decrypt_test() {
         let password = "somepassword";
+        let username = "username";
         let plaintext = "plaintext";
 
-        let (_, encapsulaton_key) = generate_keys::<MlKem1024>(password);
+        let (_, encapsulaton_key) = generate_keys::<MlKem1024>(password, username);
 
         let EncryptionResult {
             ciphertext,
@@ -142,8 +151,14 @@ mod tests {
             nonce,
         } = encrypt(&encapsulaton_key.as_bytes(), plaintext).unwrap();
 
-        let decrypted =
-            decrypt::<MlKem1024>(password, &ciphertext, &encapsulated_sym_key, &nonce).unwrap();
+        let decrypted = decrypt::<MlKem1024>(
+            password,
+            username,
+            &ciphertext,
+            &encapsulated_sym_key,
+            &nonce,
+        )
+        .unwrap();
 
         assert_eq!(decrypted, plaintext);
     }
@@ -153,9 +168,11 @@ mod tests {
         let mut rng = rand::thread_rng();
 
         let password = "qqq";
+        let username = "username";
+
         let plaintext = b"some plaintext message";
 
-        let (_dk, ek) = generate_keys::<MlKem1024>(password);
+        let (_dk, ek) = generate_keys::<MlKem1024>(password, username);
 
         let (_, k_send) = ek.encapsulate(&mut rng).unwrap();
 
@@ -172,9 +189,10 @@ mod tests {
         let mut rng = rand::thread_rng();
 
         let password = "qqq";
+        let username = "username";
 
-        let (_, ek) = generate_keys::<MlKem1024>(password);
-        let (dk, _) = generate_keys::<MlKem1024>(password);
+        let (_, ek) = generate_keys::<MlKem1024>(password, username);
+        let (dk, _) = generate_keys::<MlKem1024>(password, username);
 
         let (ct, k_send) = ek.encapsulate(&mut rng).unwrap();
         let k_recv = dk.decapsulate(&ct).unwrap();
@@ -189,14 +207,15 @@ mod tests {
         let mut rng = rand::thread_rng();
 
         let password = "qqq";
+        let username = "username";
 
-        let (_, ek) = generate_keys::<MlKem1024>(password);
+        let (_, ek) = generate_keys::<MlKem1024>(password, username);
         let (ct, k_send) = ek.encapsulate(&mut rng).unwrap();
 
         let nonce = b"unique nonce";
         let aes_cipher = aes_enc(b"plaintext", &k_send, nonce).unwrap();
 
-        let k_recv = decrypt::<MlKem1024>(password, &aes_cipher, &ct, nonce).unwrap();
+        let k_recv = decrypt::<MlKem1024>(password, username, &aes_cipher, &ct, nonce).unwrap();
 
         assert_eq!(k_recv, "plaintext")
     }
@@ -223,13 +242,14 @@ mod tests {
     /// This test detects breaking changes in the key derivation function
     fn key_derivation_test() {
         let password = "somepassword";
-        let key = key_derivation(password);
+        let username = "someusername";
+        let key = key_derivation(password, username);
 
         let expected = [
-            95, 255, 54, 134, 11, 122, 185, 73, 182, 107, 224, 95, 190, 233, 10, 38, 149, 102, 139,
-            228, 43, 153, 142, 164, 91, 77, 209, 227, 206, 160, 98, 70, 106, 215, 20, 220, 22, 161,
-            161, 239, 177, 59, 5, 44, 185, 65, 200, 56, 171, 5, 130, 120, 115, 96, 159, 85, 201,
-            23, 169, 218, 189, 215, 55, 180,
+            104, 143, 235, 85, 194, 150, 234, 118, 119, 198, 229, 81, 32, 139, 81, 195, 223, 182,
+            67, 195, 178, 197, 204, 63, 29, 30, 225, 174, 246, 203, 145, 116, 190, 26, 9, 156, 205,
+            158, 74, 145, 185, 247, 91, 211, 32, 114, 46, 235, 50, 107, 117, 101, 134, 254, 21, 5,
+            125, 122, 211, 124, 116, 114, 240, 111,
         ];
         assert_eq!(key, expected);
     }

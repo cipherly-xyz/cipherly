@@ -114,6 +114,13 @@
                             }
                         }
                     },
+                    
+                    username_invalid: function() {
+                        return (this.model.username.length > 0 && this.model.username.length < 8) || this.model.username_error?.length > 0
+                    },
+                    password_invalid: function() {
+                        return this.model.password_error ? this.model.password_error.length > 0 : false
+                    }
                 }"
                 x-effect="viewChanged(view)"
             >
@@ -159,20 +166,24 @@
                         </p>
                     </div>
                 <fieldset>
-                    <label>
+                    <div>
                         Username
-                        <input type="text" x-model="model.username" :aria-invalid="model.username_error ? true : false"/>
-                        <small x-cloak x-show="model.username_error" x-text="model.username_error"></small>
+                        <input type="text" x-model="model.username" :aria-invalid="username_invalid()"/>
+                        <small>
+                            <div x-cloak x-show="model.username_error" x-text="model.username_error"></div>
+                            <div x-cloak x-show="model.username.length > 0 && model.username.length < 8">Your username must have at least 8 characters</div>
+                        </small>
                             
                     </label>
                     <label>
                         Password
-                        <input type="password" x-model="model.password" :aria-invalid="model.password_error ? true : false"/>
+                        <input type="password" x-model="model.password" :aria-invalid="password_invalid()"/>
                         <small x-cloak x-show="model.password_error" x-text="model.password_error"></small>
 
                     </label>
                 </fieldset>
-                <button type="button" @click="model = await window.wasmBindings.register($data.model)">Register</button>
+                
+                <button type="button" :disabled="model.username == '' || username_invalid()" @click="model = await window.wasmBindings.register($data.model)">Register</button>
                 <div x-cloak x-show="model.error" class="error">
                     <small  x-text="model.error"></small>
                 </div>
@@ -306,9 +317,17 @@
                 <h3>Decrypt secret</h3>
                 <p x-show="debug == true" x-cloak x-text="JSON.stringify(model)"></p>
                 
-                <form role="search">
-                            <input type="password" id="decode-password-input" placeholder="Enter password" x-model="model.password"/>
-                            <button type="button" id="decrypt-secret-button" @click="model = await window.wasmBindings.decrypt_secret($data.model)" value="Decrypt">Decrypt</button>
+                <p>
+                To view this secret, you must enter your username and password.
+                </p>
+                <form>
+                    <label>
+                        Enter your username
+                        <input type="text" placeholder="Username" x-model="model.username"/>
+                    </label>
+                    <label for="decode-password-input">Enter your password</label>
+                    <input type="password" id="decode-password-input" placeholder="Enter password" x-model="model.password"/>
+                    <button type="button" id="decrypt-secret-button" @click="model = await window.wasmBindings.decrypt_secret($data.model)" value="Decrypt">Decrypt</button>
                 </form>
                 <div class="result">
                     <div x-cloak x-show="model.error" class="error">
