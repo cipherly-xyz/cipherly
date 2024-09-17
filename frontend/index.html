@@ -99,13 +99,16 @@
                 </button>
             </article>
             
+            <script>
+            
+            </script>
             <article x-cloak x-show="view == 'registration'"
                 x-data="{
                     model: {
                         username: '',
                         password: ''
                     },
-                    
+                    loading: false,
                     viewChanged: function(view) {
                         if (view == 'registration') {
                             this.model = {
@@ -120,7 +123,16 @@
                     },
                     password_invalid: function() {
                         return this.model.password_error ? this.model.password_error.length > 0 : false
+                    },
+                    
+                    register: async function() {
+                        $data.loading = true;
+                        $nextTick(async () => {
+                            $data.model = await window.wasmBindings.register($data.model);
+                            $data.loading = false;
+                        })
                     }
+                    
                 }"
                 x-effect="viewChanged(view)"
             >
@@ -182,13 +194,18 @@
 
                     </label>
                 </fieldset>
-                
-                <button type="button" :disabled="model.username == '' || username_invalid()" @click="model = await window.wasmBindings.register($data.model)">Register</button>
+                <button type="button" :disabled="model.username == '' || username_invalid()" @click="register()">Register</button>
                 <div x-cloak x-show="model.error" class="error">
                     <small  x-text="model.error"></small>
                 </div>
-                
+
                 </div>
+                </div>
+                <div x-cloak x-show="loading">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon"">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+                    </svg>
+                    Generating keys...
                 </div>
             </article>
             
@@ -303,13 +320,20 @@
                     model: {
                         secret_id: new URLSearchParams(window.location.search).get('secret_id')
                     },
-                    
+                    loading: false,
                     viewChanged: function(_) {
                         if (this.view == 'decrypt') {
                             model = {
                                 secret_id: new URLSearchParams(window.location.search).get('secret_id')
                             }
                         }
+                    },
+                    decrypt: async function() {
+                        $data.loading = true;
+                        $nextTick(async () => {
+                            $data.model = await window.wasmBindings.decrypt_secret($data.model)
+                            $data.loading = false;
+                        })
                     }
                     }"
                 x-effect="viewChanged(view)"
@@ -327,7 +351,7 @@
                     </label>
                     <label for="decode-password-input">Enter your password</label>
                     <input type="password" id="decode-password-input" placeholder="Enter password" x-model="model.password"/>
-                    <button type="button" id="decrypt-secret-button" @click="model = await window.wasmBindings.decrypt_secret($data.model)" value="Decrypt">Decrypt</button>
+                    <button type="button" id="decrypt-secret-button" @click="decrypt()" value="Decrypt">Decrypt</button>
                 </form>
                 <div class="result">
                     <div x-cloak x-show="model.error" class="error">
@@ -338,7 +362,12 @@
                         <p x-text="model.plaintext"></p>
                     </div>
                 </div>
-                
+                <div x-cloak x-show="loading">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon"">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+                    </svg>
+                    Generating keys...
+                </div>
             </article>
 
         </main>
