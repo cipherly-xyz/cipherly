@@ -55,10 +55,23 @@ It is recommended to build the frontend in `release` mode because argon2id is sl
 
 Use the `debug=1` query parameter to display frontend state information in the UI.
 
+#### Compatibility Tests
+
+To avoid the loss of user data, is important that key generation, encryption and decryption stay compatible between versions.
+The same password must always generate the same keys, regardless of the KDF or Kyber implementation or Cipherly version.
+
+To detect breaking changes, the frontend contains a some test to ensure compatibility with known values.
+
+```sh
+cargo test
+```
+
+The tests are executed on every `push` using GitHub Actions.
+
 ## Deployment
 
 There are docker images for the backend and the frontend.
-Images are built by GitHub Actions and pushed to GitHub Container Registry on every version tag.
+Images are built by GitHub Actions and pushed to GitHub Container Registry on every new version tag.
 
 The frontend uses Caddy as a static site server.
 
@@ -75,6 +88,65 @@ To start the deployment, run:
 
 ```sh
 docker-compose up -d
+```
+
+### Continuous Deployment
+
+When images are build and pushed to the GitHub Container Registry, a [webhook](https://github.com/adnanh/webhook) triggers a deployment on the server.
+
+```json
+[
+  {
+    "id": "redeploy",
+    "execute-command": "</path/to/redeploy.sh>",
+    "command-working-directory": "</path/to/cipherly>/deployment"
+,
+"trigger-rule": {
+      "and": [
+        {
+          "match": {
+            "type": "payload-hash-sha1",
+            "secret": "<secret from repository settings>",
+            "parameter": {
+              "source": "header",
+              "name": "X-Hub-Signature"
+            }
+          }
+        },
+        {
+          "match": {
+            "type": "value",
+            "value": "completed",
+            "parameter": {
+              "source": "payload",
+              "name": "action"
+            }
+          }
+        },
+        {
+          "match": {
+            "type": "value",
+            "value": ".github/workflows/docker.yml",
+            "parameter": {
+              "source": "payload",
+              "name": "workflow_run.path"
+            }
+          }
+        }
+      ]
+    }
+  }
+]
+```
+
+`redeploy.sh` contains the following script:
+
+```sh
+#!/usr/bin/env sh
+git pull &&
+docker compose pull &&
+docker compose down &&
+docker compose up -d
 ```
 
 ## Contributing
