@@ -52,7 +52,7 @@ jobs:
           
       - name: Extract artifacts
         run: |
-          id=$(docker create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }})
+          id=$(docker create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }})
           docker cp $id:/srv artifacts
           docker rm -v $id
       - name: ls
