@@ -58,9 +58,7 @@ jobs:
       - name: ls
         run: ls artifacts
       - name: Attest
-        uses: actions/attest@v1
+        uses: actions/attest-build-provenance@v1
         with:
           subject-path: 'artifacts/**'
-          predicate-type: 'https://slsa.dev/provenance/v1'
-          predicate:
-            '{"purl":"pkg:github/${{ github.repository }}@${{ github.sha }}"}'
+          
