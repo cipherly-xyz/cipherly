@@ -56,7 +56,7 @@ jobs:
           docker cp $id:/srv artifacts
           docker rm -v $id
       - name: ls
-        run: ls dist
+        run: ls artifacts
       - name: Attest
         uses: actions/attest@v1
         with:
