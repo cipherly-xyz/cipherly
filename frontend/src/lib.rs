@@ -14,9 +14,7 @@ impl std::fmt::Display for FrontendError {
             Self::Unknown(err) | Self::GeneralBackendError(err) => {
                 write!(f, "Unknown error: {}", err)
             }
-            FrontendError::Unknown(_) => todo!(),
-            FrontendError::GeneralBackendError(_) => todo!(),
-            FrontendError::UsernameTaken => todo!(),
+            FrontendError::UsernameTaken => write!(f, "Username taken"),
         }
     }
 }

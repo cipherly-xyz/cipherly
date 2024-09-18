@@ -150,7 +150,7 @@ pub struct Recipient {
 pub async fn find_recipient(store: JsValue) -> JsValue {
     let mut model: SearchRecipientModel = match serde_wasm_bindgen::from_value(store) {
         Ok(m) => m,
-        Err(e) => {
+        Err(_) => {
             return serde_wasm_bindgen::to_value(&SearchRecipientModel {
                 recipient: None,
                 search: "".to_string(),
@@ -400,8 +400,8 @@ pub async fn decrypt_secret(model: JsValue) -> JsValue {
 
 async fn decrypt_secret_internal(
     secret_id: &String,
-    password: &String,
-    username: &String,
+    password: &str,
+    username: &str,
 ) -> Result<DecryptedSecretViewModel, FrontendError> {
     if secret_id.is_empty() {
         return Err(FrontendError::Unknown("Secret ID is empty".to_string()));
@@ -438,8 +438,8 @@ async fn decrypt_secret_internal(
                 .map_err(|e| FrontendError::Unknown(format!("Failed to decode nonce: {e:?}")))?;
 
             let plaintext = crypto::decrypt::<ml_kem::MlKem1024>(
-                &password,
-                &username,
+                password,
+                username,
                 &ciphertext,
                 &encapsulated_sym_key,
                 &nonce,
