@@ -5,6 +5,7 @@ use ml_kem::*;
 use ml_kem::{KemCore, B32};
 use rand::Rng;
 use sha3::Digest;
+use aes_gcm_siv::aead::OsRng;
 
 use aes_gcm_siv::{
     aead::{Aead, KeyInit},
@@ -75,7 +76,7 @@ pub fn encrypt(encapsulation_key: &[u8], plaintext: &str) -> anyhow::Result<Encr
 
     let (encapsulated_sym_key, sym_key) = ek_shared_secret::<MlKem1024>(&ek);
 
-    let nonce = rand::thread_rng().gen::<[u8; 12]>();
+    let nonce = OsRng.gen::<[u8; 12]>();
     let ciphertext = aes_enc(plaintext.as_bytes(), &sym_key, &nonce)?;
 
     Ok(EncryptionResult {
