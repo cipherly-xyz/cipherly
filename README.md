@@ -3,6 +3,20 @@
 Cipherly was built to enable people to securely share secrets.
 The main goals are post quantum security and usability, while minimizing the chance for human error by eliminating the need to exchange sensitive information (shared keys) or store private keys.
 
+This readme contains information about development and deployment.
+See the documentation in the `docs/` directory for more information about the cryptography and impementation.
+
+## Features
+
+- Post quantum security
+- Easy sharing via secure links that can safely be shared publicly
+- No need to exchange keys or passwords
+- Automatic deletion of secrets
+- Recipient authentication using digital fingerprints
+- No registation needed to send a secret
+- Open source with attested build provenance
+
+
 ## Development
 
 the project is split in three parts: the `frontend`, the `backend` and a `core` crate.

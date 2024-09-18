@@ -30,6 +30,8 @@ Upon registration, users receive a link that contains both their username and fi
 When a user visits the link to share a secret, the fingerprint is automatically validated using the information included in the link.
 If the fingerprints do not match, the account might be compromised and any secret shared form now on may be accessed by another person.
 
+To test the verification process, you can simply visit the side via a profile link with a modified fingerprint.
+
 == Cryptographic design
 
 In this section the cryptographic details of the implementation are explained.
@@ -38,13 +40,26 @@ After a short introduction to the involved cryptographic primitives and a short 
 
 === Cryptographic Primitives
 
-==== Kyber/ML-KEM
+==== ML-KEM (Kyber)
+
+ML-KEM - formerly known as Kyber - is one of the post quantum algoithms https://www.nist.gov/news-events/news/2024/08/nist-releases-first-3-finalized-post-quantum-encryption-standards[recently standardized by NIST].
+KEM stands for _Key Encapsulation Mechanism_, a type of algorithm that allows two parties to exchange a secret key without sending it in plaintext.
+
+A KEM comes with three functions:footnote:[https://blog.cloudflare.com/post-quantum-key-encapsulation/]
+
+- `generate` creates two keys, a public _encapsulation key_ and a private _decapsulation key_
+- `encapsulate` takes the encapsulation key and returns a _shared secret_ and a _ciphertext_. Alice can use Bob's encapsulation key to create a shared secret that she will be able to view in plaintext. She will also get an _encapsulated_ version only Bob can read.
+- `decapsulate` uses the _decapsulation_ key to decrypt the encapsulated secret and get the shared secret. Bob uses his decapsulation key to read the shared secret Alice created.
+
+The capability of exchanging the secret key is used a the core of Cipherly and eliminates the need for both users to manually agree on a shared secret key.
 
 ==== AES
 
+AES-GCM-SIV is used to encrypt the secret with a symmetric key previously generated using ML-KEM.
+
 ==== argon2id KDF
 
-To generate material for the Kyber key pair is derived from the password the password chosen by the user.
+To generate material for the ML-KEM key pair is derived from the password the password chosen by the user.
 In accordance to https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR02102/BSI-TR-02102.pdf?__blob=publicationFile&v=10[BSI TR-02102-1], (part B.1.3.) `argon2id` is used as key derivation function.
 Parameter choice followes the recommendations from https://datatracker.ietf.org/doc/rfc9106/[RFC9106] with lower RAM usage:
 
@@ -102,11 +117,10 @@ While AES alone would be anough to implement a platform where users can exchange
 A possible attack allowing someone else than the recipient to decrypt the symmetric key and thus the secret, is replacing the encapsulation key with one the attacker owns the matching decapsulation key for.
 Besides the usual precautions - preventing people from chaingin other peoples encapsulation key - users have the ability to verify the encapsulation key used to decrypt the secret.
 
-The fingerprint is the _SHA_ hash(TODO: which one?) of the encapsulation key.
+The fingerprint is the _SHA3-256_ hash of the encapsulation key.
 It is displayed when users create their key.
 
 
-TODO: nonce, key generation, fingerprints
 
 image::crypto.drawio.png[]
 
