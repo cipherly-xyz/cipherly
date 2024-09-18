@@ -141,15 +141,13 @@ TODO: argon2id
 ==== Third party assets
 
 While the Rust dependencies are compiled into the WASM binary, Alpine.js and Pico css are loaded from a CDN.
-They are pinned to specific versions and use SRI hashes:footnote[https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity] for integrity.
+They are pinned to specific versions and use SRI hashes footnote:[https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity] for integrity.
 
 The Heroicons are included in the index.html file and not loaded from a CDN.
 
 === Backend
 
 TODO: list of endpoints
-TODO: how to audit
-TODO: how to test the fingerprint feature
 
 The backend is a Rust application providing a REST API over HTTP using _axum_ footnote:[https://crates.io/crates/axum].
 All data is stored using _SQlite_ footnote:[https://www.sqlite.org/] and the _sqlx_ crate footnote:[https://crates.io/crates/sqlx].
@@ -161,7 +159,7 @@ To verify the claims, the following steps can be taken.
 
 === Validate the design
 
-See <<Cryptographic design>> for a detailed explanation of the cryptographic primitives used in Cipherly.
+See <<Cryptographic design>> for a detailed explanation of the cryptographic primitives used in Cipherly and how they work together.
 
 === Read the source
 
@@ -172,18 +170,19 @@ For this reason, auditors should focus in the implementation of the frontend and
 - encryption is implemented as described in <<Cryptographic design>> (`crypto.rs`)
 - cryptographic primitives are used correctly
 
-=== Verify the integrity of the frontend (attestation)
+=== Verify the integrity of the frontend (provenance attestation)
 
 Even with a bulletproof open source implementation of the frontend, the backend could be compromised, allowing an attacker to 
 serve a modified version of the frontend.
 
 The frontend is built in a GitHub action.
-During the build process, the [attest-build-provenance](https://github.com/actions/attest-build-provenance) action is used to attest the build provenance of the resulting artifacts (html, wasm and js files).
+During the build process, the https://github.com/actions/attest-build-provenance[attest-build-provenance] action is used to attest the build provenance of the resulting artifacts (html, wasm and js files).
 This allows you to verify that the frontend files served are built from the source code in the repository.
 
-==== Provenance attestation
+As part of the repository, the pipeline configuration itself can be reviewed too.
 
-===== Download the frontend files.
+==== Download the frontend files.
+
 The paths are listed here for convenience, check the browser developer tools to make sure you have verified all the files.
 
 Note that 3rd party assets are not covered here (see <<Third party assets>> for more information).
@@ -200,7 +199,7 @@ The path of this file might change, check the browser developer tools for the co
 wget https://cipherly.xyz/snippets/secretshare-439caabd60b6b6c4/inline0.js
 ```
 
-===== Using the GitHub CLI
+==== Using the GitHub CLI
 
 Install the GitHub CLI: https://cli.github.com/[GitHub CLI].
 
