@@ -5,9 +5,14 @@ The main goals are post quantum security and usability, while minimizing the cha
 
 ## Development
 
+the project is split in three parts: the `frontend`, the `backend` and a `core` crate.
+The `core` crate defines data models exchanged between the frontend and the backend (request and response bodies).
+
 ### Backend
 
-The SQLite database is configured using the `DATABASE_URL` environment variable.
+The backend is a Rust application using the [Axum](https://github.com/tokio-rs/axum) web application framework and [SQLx](https://github.com/launchbadge/sqlx).
+
+The SQLite database is configured with the `DATABASE_URL` environment variable.
 You can create a `config.toml` in the `backend/.cargo` directory to tell cargo to set the environment variable when running the server:
 
 ```toml
@@ -30,7 +35,14 @@ cargo run
 ```
 
 ### Frontend
-Cipherly uses [Trunk](https://trunkrs.dev/) to buld and bundle the frontend.
+
+The frontend is developed using Rust and [Alpine.js](https://alpinejs.dev).
+the Rust part contains the cryptography and the communication with the backend and i scompiled to WebAssembly.
+Alpine.js is used to render the application state and handle user inputs.
+When the user triggers an action, Alpine.js calls the Rust/WebAssembly functions and passes the current state.
+Rust returns the new state, which is then rendered by Alpine.js.
+
+Cipherly uses [Trunk](https://trunkrs.dev/) to build and bundle the frontend.
 In the `frontend/` directory, run
 
 ```sh
@@ -38,7 +50,8 @@ trunk serve
 ```
 
 The frontend will be available at `http://localhost:8080`.
-Trunk is configured to proxy requests backend requests to `http://localhost:3000/api` (see `Trunk.toml`)
+Trunk is configured to proxy requests backend requests to `http://localhost:3000/api` (see `Trunk.toml`).
+It is recommended to build the frontend in `release` mode because argon2id is slow in debug mode, the config file contains this setting.
 
 Use the `debug=1` query parameter to display frontend state information in the UI.
 
