@@ -15,7 +15,8 @@ use aes_gcm_siv::{
 // re-export for convenience
 pub use ml_kem::MlKem1024;
 
-pub fn key_derivation(password: &str, username: &str) -> [u8; 64] {
+/// Generate key material from a password using the username as salt
+fn key_derivation(password: &str, username: &str) -> [u8; 64] {
     let mut output_key_material = [0u8; 64];
     let salt = format!("cipherly{username}");
 
@@ -39,11 +40,12 @@ pub fn key_derivation(password: &str, username: &str) -> [u8; 64] {
     output_key_material
 }
 
+/// Generate a decapsulation keypair
 pub fn generate_keys<K: KemCore>(
-    input: &str,
+    password: &str,
     username: &str,
 ) -> (K::DecapsulationKey, K::EncapsulationKey) {
-    let key_input = key_derivation(input, username);
+    let key_input = key_derivation(password, username);
 
     let d = B32::from_slice(&key_input[..32]);
     let z = B32::from_slice(&key_input[32..]);
@@ -53,12 +55,12 @@ pub fn generate_keys<K: KemCore>(
     (dk, ek)
 }
 
-pub fn ek_from_bytes<K: KemCore>(input: &[u8]) -> K::EncapsulationKey {
+fn ek_from_bytes<K: KemCore>(input: &[u8]) -> K::EncapsulationKey {
     let ek = Encoded::<K::EncapsulationKey>::from_slice(input);
     K::EncapsulationKey::from_bytes(ek)
 }
 
-pub fn ek_shared_secret<K: KemCore>(ek: &K::EncapsulationKey) -> (Vec<u8>, Vec<u8>) {
+fn ek_shared_secret<K: KemCore>(ek: &K::EncapsulationKey) -> (Vec<u8>, Vec<u8>) {
     let mut rng = rand::thread_rng();
 
     let (c, k) = ek.encapsulate(&mut rng).unwrap();
@@ -71,6 +73,7 @@ pub struct EncryptionResult {
     pub encapsulated_sym_key: Vec<u8>,
     pub nonce: Vec<u8>,
 }
+/// encrypt a plaintext and encapsulate the symmetric key using the provided encapsulation key
 pub fn encrypt(encapsulation_key: &[u8], plaintext: &str) -> anyhow::Result<EncryptionResult> {
     let ek = ek_from_bytes::<MlKem1024>(encapsulation_key);
 
@@ -86,6 +89,7 @@ pub fn encrypt(encapsulation_key: &[u8], plaintext: &str) -> anyhow::Result<Encr
     })
 }
 
+/// deecrypt performs the whole decryption process, key generation, decapsulation and decryption
 pub fn decrypt<K: KemCore>(
     password: &str,
     username: &str,
@@ -107,7 +111,7 @@ pub fn decrypt<K: KemCore>(
     String::from_utf8(plaintext).map_err(|e| anyhow::anyhow!(e))
 }
 
-pub fn aes_enc(plaintext: &[u8], key: &[u8], nonce: &[u8]) -> anyhow::Result<Vec<u8>> {
+fn aes_enc(plaintext: &[u8], key: &[u8], nonce: &[u8]) -> anyhow::Result<Vec<u8>> {
     let cipher = Aes256GcmSiv::new_from_slice(key)?;
     let nonce = Nonce::from_slice(nonce);
     let ciphertext = cipher
@@ -117,7 +121,7 @@ pub fn aes_enc(plaintext: &[u8], key: &[u8], nonce: &[u8]) -> anyhow::Result<Vec
     Ok(ciphertext)
 }
 
-pub fn aes_dec(ciphertext: &[u8], key: &[u8], nonce: &[u8]) -> anyhow::Result<Vec<u8>> {
+fn aes_dec(ciphertext: &[u8], key: &[u8], nonce: &[u8]) -> anyhow::Result<Vec<u8>> {
     let cipher = Aes256GcmSiv::new_from_slice(key)?;
     let nonce = Nonce::from_slice(nonce);
     let ciphertext = cipher
@@ -127,6 +131,7 @@ pub fn aes_dec(ciphertext: &[u8], key: &[u8], nonce: &[u8]) -> anyhow::Result<Ve
     Ok(ciphertext)
 }
 
+/// Calculate the fingerprint of an encapsulation key
 pub fn encapsulation_key_fingerprint(encapsulation_key: &[u8]) -> String {
     let mut hasher = sha3::Sha3_256::new();
     hasher.update(encapsulation_key);
@@ -136,10 +141,9 @@ pub fn encapsulation_key_fingerprint(encapsulation_key: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aes_gcm_siv::aead::OsRng;
 
     #[test]
-    fn encrypt_decrypt_test() {
+    fn encrypt_decrypt_roundtrip_test() {
         let password = "somepassword";
         let username = "username";
         let plaintext = "plaintext";
@@ -186,7 +190,7 @@ mod tests {
     }
 
     #[test]
-    fn ml_kem_keygen() {
+    fn kyber_roundtrip_test() {
         let mut rng = rand::thread_rng();
 
         let password = "qqq";
@@ -219,24 +223,6 @@ mod tests {
         let k_recv = decrypt::<MlKem1024>(password, username, &aes_cipher, &ct, nonce).unwrap();
 
         assert_eq!(k_recv, "plaintext")
-    }
-
-    #[test]
-    fn aestest() {
-        let plaintext = b"plaintext message";
-        let key = Aes256GcmSiv::generate_key(&mut OsRng);
-        let cipher = Aes256GcmSiv::new(&key);
-        let nonce = Nonce::from_slice(b"unique nonce"); // 96-bits; unique per message
-        let ciphertext = cipher
-            .encrypt(nonce, plaintext.as_ref())
-            .expect("failed to encrypt");
-
-        println!("ciphertext: {ciphertext:?}");
-        println!("cipher len: {}", ciphertext.len());
-        let plaintext = cipher
-            .decrypt(nonce, ciphertext.as_ref())
-            .expect("failed to decrypt");
-        assert_eq!(&plaintext, &plaintext);
     }
 
     #[test]
