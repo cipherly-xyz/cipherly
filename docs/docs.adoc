@@ -140,6 +140,72 @@ TODO: how to test the fingerprint feature
 The backend is a Rust application providing a REST API over HTTP using _axum_ footnote:[https://crates.io/crates/axum].
 All data is stored using _SQlite_ footnote:[https://www.sqlite.org/] and the _sqlx_ crate footnote:[https://crates.io/crates/sqlx].
 
+== Veryfing the integrity of Cipherly
+
+Cipherly is designed to be secure.
+To verify the claims, the following steps can be taken.
+
+=== Validate the design
+
+See <<Cryptographic design>> for a detailed explanation of the cryptographic primitives used in Cipherly.
+
+=== Read the source
+
+An important apect of Cipherly is that passwords and plaintext secrets never leave the browser.
+For this reason, auditors should focus in the implementation of the frontend and verify that
+
+- no extra requests are made or other means of leaking the secrets are present
+- encryption is implemented as described in <<Cryptographic design>> (`crypto.rs`)
+- cryptographic primitives are used correctly
+
+=== Verify the integrity of the frontend (attestation)
+
+Even with a bulletproof open source implementation of the frontend, the backend could be compromised, allowing an attacker to 
+serve a modified version of the frontend.
+
+The frontend is built in a GitHub action.
+During the build process, the [attest-build-provenance](https://github.com/actions/attest-build-provenance) action is used to attest the build provenance of the resulting artifacts (html, wasm and js files).
+This allows you to verify that the frontend files served are built from the source code in the repository.
+
+==== Provenance attestation
+
+===== Download the frontend files.
+The paths are listed here for convenience, check the browser developer tools to make sure you have verified all the files.
+
+Note that 3rd party assets are not covered here (see <<Third party assets>> for more information).
+
+```sh
+wget https://cipherly.xyz/index.html
+wget https://cipherly.xyz/secretshare.js
+wget https://cipherly.xyz/secretshare_bg.wasm
+```
+
+The path of this file might change, check the browser developer tools for the correct path.
+
+```sh
+wget https://cipherly.xyz/snippets/secretshare-439caabd60b6b6c4/inline0.js
+```
+
+===== Using the GitHub CLI
+
+Install the GitHub CLI: https://cli.github.com/[GitHub CLI].
+
+
+```sh
+gh attestation verify index.html --repo cipherly-xyz/cipherly
+gh attestation verify secretshare.js --repo cipherly-xyz/cipherly
+gh attestation verify secretshare_bg.wasm --repo cipherly-xyz/cipherly
+gh attestation verify inline0.js --repo cipherly-xyz/cipherly
+```
+
+For more iformation, see https://cli.github.com/manual/gh_attestation_verify
+
+===== Without GitHub CLI
+
+You can also calculate the hashes of the files and manually verify the attestation using the reports on GitHub:
+
+https://github.com/tufteddeer/secretshare/attestations
+
 == Future work
 
 - one time secrets
@@ -148,3 +214,4 @@ All data is stored using _SQlite_ footnote:[https://www.sqlite.org/] and the _sq
 - authorization before fetching (challenge)
 - multiple recipients
 - cache fingerprints in local storage
+- use provenance attestation for Docker images to increase security for self hosted/on prem scenarios
