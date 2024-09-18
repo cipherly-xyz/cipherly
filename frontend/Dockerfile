@@ -13,7 +13,7 @@ WORKDIR /secretshare/frontend
 
 #RUN trunk build --release
 RUN mkdir dist
-RUN echo "Hello, World!" > dist/index.html
+RUN echo "Hello, World! with attested changes" > dist/index.html
 
 
 FROM caddy:alpine
