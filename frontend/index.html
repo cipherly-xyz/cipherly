@@ -308,7 +308,10 @@
                     
                     <div x-cloak x-show="model.success" class="success">
                         <p>
-                            Secret shared with <span x-text="model.success?.recipient"></span>
+                            Secret shared!
+                        </p>
+                        <p>
+                            <b x-text="model.success?.recipient"></b> can use this link to decrypt the secret:
                         </p>
                         <p>
                             <a :href="model.success?.url" x-text="model.success?.url"></a>
