@@ -217,7 +217,7 @@ For more iformation, see https://cli.github.com/manual/gh_attestation_verify
 
 You can also calculate the hashes of the files and manually verify the attestation using the reports on GitHub:
 
-https://github.com/tufteddeer/secretshare/attestations
+https://github.com/cipherly-xyz/cipherly/attestations
 
 == Future work
 
