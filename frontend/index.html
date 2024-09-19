@@ -215,27 +215,24 @@
                 </div>
             </article>
             
-            <article  x-cloak x-show="view == 'share'" x-data="{
-                model: {
-                    recipient: null,
-                    search: new URLSearchParams(window.location.search).get('username'),
-                    secret: '',
-                    timeout: '1week',
-                    recipient: null,
-                    expected_fingerprint: new URLSearchParams(window.location.search).get('fingerprint'),
-                    expected_fingerprint_user: new URLSearchParams(window.location.search).get('username'),
-                },
+            <article  x-cloak x-show="view == 'share'" x-init="init()" x-data="{
+                model: null,
                 
+                init: function() {
+                    this.model = {
+                        search: new URLSearchParams(window.location.search).get('username'),
+                        expected_fingerprint: new URLSearchParams(window.location.search).get('fingerprint'),
+                        expected_fingerprint_user: new URLSearchParams(window.location.search).get('username'),
+                        recipient: null,
+                        secret: '',
+                        timeout: '1week',
+                        success: null,
+                    }
+                    
+                },
                 viewChanged: function(view) {
                     if (view == 'share') {
-                        this.model = {
-                            search: new URLSearchParams(window.location.search).get('username'),
-                            expected_fingerprint: new URLSearchParams(window.location.search).get('fingerprint'),
-                            expected_fingerprint_user: new URLSearchParams(window.location.search).get('username'),
-                            recipient: null,
-                            secret: '',
-                            timeout: '1week',
-                        }
+                        this.init();
                     }
                 },
                 }"
@@ -243,6 +240,7 @@
             >
                 <h3>Share secret</h3>
                 <p x-show="debug == true"  x-cloak x-text="JSON.stringify($data)"></p>
+                <div x-show="!model.success">
                 <div role="search">
                             <input name="search" type="search" id="search-recipient-input" placeholder="Enter recipient" x-model="model.search" :aria-invalid="model.username_error ? true : false"/>
                             <button type="button" id="search-recipient-button" @click="model = await window.wasmBindings.find_recipient($data.model)" value="Search">Search</button>
@@ -302,7 +300,8 @@
     
                         <button :disabled="!model.recipient" type="button" id="search-recipient-button" @click="model = await window.wasmBindings.share_secret($data.model)" value="Encrypt" />Encrypt</button>
                 </div>
-                <div id="share-secret-result" class="result">
+                </div>
+                <div class="result">
                     <div x-cloak x-show="model.error" class="error">
                         <small  x-text="model.error"></small>
                     </div>
@@ -320,6 +319,7 @@
                         <p x-cloak x-show="!model.success?.expiration">
                             Never expires
                         </p>
+                        <button @click="init()">Share another secret</button>
                     </div>
                 </div> 
             </article>  
