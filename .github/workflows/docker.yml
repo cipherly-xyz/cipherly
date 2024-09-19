@@ -81,6 +81,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           load: true
+          build-args: VERSION=${{ github.ref_name }}
           
       - name: Extract artifacts for attestation
         run: |
