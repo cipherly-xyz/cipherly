@@ -4,7 +4,8 @@ Cipherly was built to enable people to securely share secrets.
 The main goals are post quantum security and usability, while minimizing the chance for human error by eliminating the need to exchange sensitive information (shared keys) or store private keys.
 
 This readme contains information about development and deployment.
-See the documentation in the `docs/` directory for more information about the cryptography and impementation.
+
+See the [documentation](https://github.com/cipherly-xyz/cipherly/blob/main/docs/README.adoc) in the `docs/` directory for more information about the cryptography and impementation.
 
 ## Features
 

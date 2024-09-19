@@ -70,6 +70,7 @@
                 <li><a :class="view == 'home' ? 'primary' : 'secondary'" @click="view = 'home'">Home</a></li>
                 <li><a :class="view == 'registration' ? 'primary' : 'secondary'" @click="view = 'registration'">Register</a></li>
                 <li><a :class="view == 'share' ? 'primary' : 'secondary'" @click="view = 'share'">Share</a></li>
+                <li><a class="secondary" href="https://github.com/cipherly-xyz/cipherly" target="_blank">Source</a></li>
             </ul>
         </nav>
         <article class="debug-warning"  x-cloak x-show="debug == true">
@@ -90,6 +91,10 @@
                     <li>Recipient authentication using digital fingerprints</li>
                     <li>No registation needed to send a secret</li>
                 </ul>
+                
+                <p>
+                    Read the <a href="https://github.com/cipherly-xyz/cipherly/blob/main/docs/README.adoc">Documentation</a> to learn more.
+                </p>
                 
                 <button class="outline" @click="view = 'registration'">
                     I want to receive secrets
