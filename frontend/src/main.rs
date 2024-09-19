@@ -240,7 +240,7 @@ async fn find_recipient_internal(
 struct ShareSecretSuccessViewModel {
     url: String,
     recipient: String,
-    expiration: String,
+    expiration: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -301,17 +301,27 @@ async fn share_secret_internal(
 
     let now = web_time::SystemTime::now();
     let deadline = match timeout {
-        "1hour" => now + web_time::Duration::from_secs_f32(3600.0),
-        "1day" => now + web_time::Duration::from_secs_f32(86400.0),
-        "1week" => now + web_time::Duration::from_secs_f32(604800.0),
-        "10seconds" => now + web_time::Duration::from_secs_f32(10.0),
+        "1hour" => Some(now + web_time::Duration::from_secs_f32(3600.0)),
+        "1day" => Some(now + web_time::Duration::from_secs_f32(86400.0)),
+        "1week" => Some(now + web_time::Duration::from_secs_f32(604800.0)),
+        "10seconds" => Some(now + web_time::Duration::from_secs_f32(10.0)),
+        "never" => None,
         _ => todo!("invalid timeout selected"),
     };
 
-    let deadline_unix = deadline
-        .duration_since(web_time::UNIX_EPOCH)
+    let deadline_unix = deadline.map(|d| {
+        let unix = d.duration_since(web_time::UNIX_EPOCH)
         .map_err(|e| FrontendError::Unknown(format!("Failed to convert to unix time: {e:?}")))?
         .as_secs() as u32;
+        
+        Ok(unix)
+    });
+
+    let deadline_unix = match deadline_unix  {
+        Some(Ok(u)) => Some(u),
+        Some(Err(e)) => return Err(e),
+        None => None,
+    };
 
     let ek_bytes = core::decode_base64(&recipient.public_key)
         .map_err(|e| FrontendError::Unknown(format!("Failed to decode public key: {e:?}")))?;
@@ -347,7 +357,12 @@ async fn share_secret_internal(
 
             let url = url(&format!("/?secret_id={}", response_body.id));
 
-            let deadline_fmt = format_date(deadline_unix)?;
+            let deadline_fmt = match deadline_unix {
+                Some(unix) => {
+                    Some(format_date(unix)?)
+                },
+                None => None,
+            };
             Ok(ShareSecretSuccessViewModel {
                 url,
                 recipient: recipient.username.clone(),

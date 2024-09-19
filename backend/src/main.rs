@@ -242,7 +242,7 @@ async fn get_secret(
         r#"
             SELECT * FROM secrets WHERE
                 id = ? and
-                expiration > strftime('%s');
+                (expiration > strftime('%s') or expiration is null);
             "#,
     )
     .bind(secret_id.0)

@@ -12,7 +12,7 @@ See the [documentation](https://github.com/cipherly-xyz/cipherly/blob/main/docs/
 - Post quantum security
 - Easy sharing via secure links that can safely be shared publicly
 - No need to exchange keys or passwords
-- Automatic deletion of secrets
+- Automatic deletion of secrets (optional)
 - Recipient authentication using digital fingerprints
 - No registation needed to send a secret
 - Open source with attested build provenance

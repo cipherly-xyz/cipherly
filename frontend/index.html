@@ -220,7 +220,7 @@
                     recipient: null,
                     search: new URLSearchParams(window.location.search).get('username'),
                     secret: '',
-                    timeout: '1hour',
+                    timeout: '1week',
                     recipient: null,
                     expected_fingerprint: new URLSearchParams(window.location.search).get('fingerprint'),
                     expected_fingerprint_user: new URLSearchParams(window.location.search).get('username'),
@@ -234,7 +234,7 @@
                             expected_fingerprint_user: new URLSearchParams(window.location.search).get('username'),
                             recipient: null,
                             secret: '',
-                            timeout: '1hour',
+                            timeout: '1week',
                         }
                     }
                 },
@@ -294,6 +294,7 @@
                                     <option value="1hour" selected>One hour</option>
                                     <option value="1day">One day</option>
                                     <option value="1week">One week</option>
+                                    <option value="never">Never</option>
                                     <option x-show="debug == true" value="10seconds">Ten seconds</option>
                                 </select>
                                 </fieldset>
@@ -313,8 +314,11 @@
                         <p>
                             <a :href="model.success?.url" x-text="model.success?.url"></a>
                         </p>
-                        <p>
+                        <p x-cloak x-show="model.success?.expiration">
                             ⌛️ Expires at <span x-text="model.success?.expiration"></span>
+                        </p>
+                        <p x-cloak x-show="!model.success?.expiration">
+                            Never expires
                         </p>
                     </div>
                 </div> 
