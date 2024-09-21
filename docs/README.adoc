@@ -128,29 +128,37 @@ image::crypto.drawio.png[]
 
 === Frontend
 
+A full list of dependencies can be found in the `frontend/Cargo.toml` file.
+
+https://alpinejs.dev[Alpine.js] is used for input handling and updating the UI.
+
 ==== Crypthographic Libraries
 
 - Kyber/ML-KEM: https://crates.io/crates/ml-kem[ml-kem]
 - AES: https://crates.io/crates/aes-gcm-siv[aes-gcm-siv]
 - SHA: https://crates.io/crates/sha3[sha3]
-
-TODO: mention compatibility tests to catch breaking changes
-
-TODO: argon2id
+- argon2id: https://crates.io/crates/argon2[argon2]
 
 ==== Third party assets
 
-While the Rust dependencies are compiled into the WASM binary, Alpine.js and Pico css are loaded from a CDN.
+While the Rust dependencies are compiled into the WASM binary, Alpine.js and Pico.css are loaded from a CDN.
 They are pinned to specific versions and use SRI hashes footnote:[https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity] for integrity.
 
 The Heroicons are included in the index.html file and not loaded from a CDN.
 
 === Backend
 
-TODO: list of endpoints
-
 The backend is a Rust application providing a REST API over HTTP using _axum_ footnote:[https://crates.io/crates/axum].
 All data is stored using _SQlite_ footnote:[https://www.sqlite.org/] and the _sqlx_ crate footnote:[https://crates.io/crates/sqlx].
+
+==== Endpoints
+
+- POST /api/accounts - Create a new account
+- GET /api/accounts/:username - Fetch the public key of a user by the username
+- POST /api/secrets - Create a new secret
+- GET /api/secret/:id` - Fetches a secret by its ID
+
+The request and response bodies are described in `core/src/lib.rs`.
 
 == Veryfing the integrity of Cipherly
 
@@ -174,6 +182,8 @@ For this reason, auditors should focus in the implementation of the frontend and
 
 Even with a bulletproof open source implementation of the frontend, the backend could be compromised, allowing an attacker to 
 serve a modified version of the frontend.
+
+To allow users to verify that the frontend served is built from the source code in the repository, we use build provenance attestation.
 
 The frontend is built in a GitHub action.
 During the build process, the https://github.com/actions/attest-build-provenance[attest-build-provenance] action is used to attest the build provenance of the resulting artifacts (html, wasm and js files).
@@ -221,10 +231,35 @@ https://github.com/cipherly-xyz/cipherly/attestations
 
 == Future work
 
-- one time secrets
-	- can be seen one time
-	- requirement: authorization before fetching, to avoid DOS by guessing ID
-- authorization before fetching (challenge)
-- multiple recipients
-- cache fingerprints in local storage
-- use provenance attestation for Docker images to increase security for self hosted/on prem scenarios
+There are several features that could be added to improve Cipherly in the future.
+
+=== One time secrets
+
+One time secrets are deleted after being decrypted.
+It would be not enough to rely on the frontend to trigger secret deletion, so the secrect must be deleted by the backend after it has been fetched.
+To avoid DOS attacks an attacker fetches other peoples secrets to trigger their deletion, the backend should implement a challenge response protocol to ensure that the requesting party is able to decrypt the secret.
+
+
+=== Multiple recipients
+
+This requires some more thought to make an efficient and secure implementation.
+Since changes in the cryptography may break existing keys and secrets, this should be implemented with care.
+
+With the current ML-KEM + AES implementation, multiple recipients would require storing the encapsulated symmetric key multiple times, one time for each recipient.
+Since the Key Encapsulation Mechanism picks a new message (symmetric key in this case) for each recipient, the symmetric key would have to be encrypted multiple times too.
+This would increase the size of transfered data and the amount of data stored on the server.
+
+Furthermore, the encrypted symmetric keys would have to be stored in a way that allows to determine which encapsulated key belongs to which recipient, unless the recipient would fetch all encapsulated keys and the ciphertext and decrypt all of them until one of them yield a valid symmetric key.
+This is currently not necessary and would make it easier for an attacker to link a secret to a recipient.
+
+The approach of using a multi-kem like https://github.com/cryptojedi/kyber-mkem[kyber-mkem] needs some investigation too.
+
+=== Fingerprint caching
+
+To increase the usability of the fingerprint verification, the frontend could cache the fingerprints in local storage.
+
+Alternatively, the fingerprints known to a user could be stored in some kind of per-user "address book" on the server, encrypted with the public key of the user.
+
+=== Docker image provenance attestation
+
+To increase security for self hosted/on prem scenarios, provenance attestation for the Docker image could be implemented.
