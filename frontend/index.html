@@ -143,16 +143,35 @@
                 x-effect="viewChanged(view)"
             >
                 <h3>Register</h3>
-                
-                <p>
-                    You need an account to receive secrets. Others will need your username to share their secrets with you.
-                </p>
-                <p>
-                    The secrecy of your secrets depends on your password. If you forget your password, you will lose access to your secrets.
-                </p>
-                
                 <p x-show="debug == true" x-cloak x-text="JSON.stringify($data)"></p>
+                <div x-show="!model.success">
+                    <p>
+                        You need an account to receive secrets. Others will need your username to share their secrets with you.
+                    </p>
+                    <p>
+                        The secrecy of your secrets depends on your password. If you forget your password, you will lose access to your secrets.
+                    </p>
 
+                    <fieldset>
+                        <div>
+                            Username
+                            <input type="text" x-model="model.username" :aria-invalid="username_invalid()"/>
+                            <small>
+                                <div x-cloak x-show="model.username_error" x-text="model.username_error"></div>
+                                <div x-cloak x-show="model.username.length > 0 && model.username.length < 8">Your username must have at least 8 characters</div>
+                            </small>
+                                
+                        </label>
+                        <label>
+                            Password
+                            <input type="password" x-model="model.password" :aria-invalid="password_invalid()"/>
+                            <small x-cloak x-show="model.password_error" x-text="model.password_error"></small>
+    
+                        </label>
+                    </fieldset>
+                    <button type="button" :disabled="model.username == '' || username_invalid()" @click="register()">Register</button>
+                </div>
+                
                 <div class="result">
                     <div x-cloak x-show="model.success" class="success">
                         <p>
@@ -183,29 +202,10 @@
                             <a :href="model.success?.profile_url_with_fingerprint" x-text="model.success?.profile_url_with_fingerprint"></a>
                         </p>
                     </div>
-                <fieldset>
-                    <div>
-                        Username
-                        <input type="text" x-model="model.username" :aria-invalid="username_invalid()"/>
-                        <small>
-                            <div x-cloak x-show="model.username_error" x-text="model.username_error"></div>
-                            <div x-cloak x-show="model.username.length > 0 && model.username.length < 8">Your username must have at least 8 characters</div>
-                        </small>
-                            
-                    </label>
-                    <label>
-                        Password
-                        <input type="password" x-model="model.password" :aria-invalid="password_invalid()"/>
-                        <small x-cloak x-show="model.password_error" x-text="model.password_error"></small>
 
-                    </label>
-                </fieldset>
-                <button type="button" :disabled="model.username == '' || username_invalid()" @click="register()">Register</button>
-                <div x-cloak x-show="model.error" class="error">
-                    <small  x-text="model.error"></small>
-                </div>
-
-                </div>
+                    <div x-cloak x-show="model.error" class="error">
+                        <small  x-text="model.error"></small>
+                    </div>
                 </div>
                 <div x-cloak x-show="loading">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon"">
@@ -353,19 +353,20 @@
             >
                 <h3>Decrypt secret</h3>
                 <p x-show="debug == true" x-cloak x-text="JSON.stringify(model)"></p>
-                
-                <p>
-                To view this secret, you must enter your username and password.
-                </p>
-                <form>
-                    <label>
-                        Enter your username
-                        <input type="text" placeholder="Username" x-model="model.username"/>
-                    </label>
-                    <label for="decode-password-input">Enter your password</label>
-                    <input type="password" id="decode-password-input" placeholder="Enter password" x-model="model.password"/>
-                    <button type="button" id="decrypt-secret-button" @click="decrypt()" value="Decrypt">Decrypt</button>
-                </form>
+                <div x-show="!model.plaintext">
+                    <p>
+                    To view this secret, you must enter your username and password.
+                    </p>
+                    <form>
+                        <label>
+                            Enter your username
+                            <input type="text" placeholder="Username" x-model="model.username"/>
+                        </label>
+                        <label for="decode-password-input">Enter your password</label>
+                        <input type="password" id="decode-password-input" placeholder="Enter password" x-model="model.password"/>
+                        <button type="button" id="decrypt-secret-button" @click="decrypt()" value="Decrypt">Decrypt</button>
+                    </form>
+                </div>
                 <div class="result">
                     <div x-cloak x-show="model.error" class="error">
                         <small  x-text="model.error"></small>
