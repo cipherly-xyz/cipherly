@@ -15,7 +15,7 @@ See the [documentation](https://github.com/cipherly-xyz/cipherly/blob/main/docs/
 - Automatic deletion of secrets (optional)
 - Recipient authentication using digital fingerprints
 - No registation needed to send a secret
-- Open source with attested build provenance https://github.com/cipherly-xyz/cipherly/tree/main/docs#verify-the-integrity-of-the-frontend-provenance-attestation[learn how]
+- Open source with attested build provenance [learn how](https://github.com/cipherly-xyz/cipherly/tree/main/docs#verify-the-integrity-of-the-frontend-provenance-attestation)
 
 
 ## Development
